@@ -55,7 +55,36 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             }
         }
     }
+    pub fn random_uniform(
+    shape: &[usize], 
+    low: f32, 
+    high: f32, 
+    dtype: Dtype,
+    key: &Array 
+    ) -> Result<Array> {
+    let shape_i32: Vec<i32> = shape.iter().map(|&s| s as i32).collect();
+    
+    // Convert bounds to MLX scalar arrays
+    let low_arr = Array::full(&[], low, dtype)?;
+    let high_arr = Array::full(&[], high, dtype)?;
 
+    unsafe {
+        let mut res_handle = crate::sys::mlx_array { ctx: std::ptr::null_mut() };
+        
+        let status = crate::sys::mlx_random_uniform(
+            &mut res_handle,
+            low_arr.handle,     
+            high_arr.handle,     
+            shape_i32.as_ptr(),
+            shape_i32.len(),
+            dtype.into(), 
+            key.handle,          // Pass the entropy key
+            Self::default_stream(),
+        );
+        
+        low_arr.check_status(status, res_handle)
+    }
+}
     /// Element-wise addition
     pub fn add(&self, other: &Array) -> Result<Array> {
         unsafe {
@@ -132,6 +161,55 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
         }
     }
 
+    /// Multiplies the array by a scalar float.
+    pub fn multiply_scalar(&self, value: f32) -> Result<Array> {
+        // Create a 0-dimension (scalar) array
+        let scalar = Self::full(&[], value, self.dtype())?;
+        self.multiply(&scalar)
+    }
+    /// Adds a scalar float to the array.
+    pub fn add_scalar(&self, value: f32) -> Result<Array> {
+        let scalar = Self::full(&[], value, self.dtype())?;
+        self.add(&scalar)
+    }
+
+
+    /// Generates a new base key from a seed.
+    pub fn key(seed: u64) -> Result<Self> {
+        unsafe {
+            let mut res_handle = crate::sys::mlx_array { ctx: std::ptr::null_mut() };
+            let status = crate::sys::mlx_random_key(&mut res_handle, seed);
+            if status != 0 || res_handle.ctx.is_null() { Err(Error::OperationFailed) } else { Ok(Array { handle: res_handle }) }
+        }
+    }
+
+    /// Splits a key into two new keys.
+ 
+    pub fn split(&self) -> Result<(Array, Array)> {
+    unsafe {
+        let mut res1_handle = crate::sys::mlx_array { ctx: std::ptr::null_mut() };
+        let mut res2_handle = crate::sys::mlx_array { ctx: std::ptr::null_mut() };
+
+        let status = crate::sys::mlx_random_split(
+            &mut res1_handle, 
+            &mut res2_handle, 
+            self.handle, 
+            Self::default_stream()
+        );
+        if status != 0 || res1_handle.ctx.is_null() || res2_handle.ctx.is_null() {
+            return Err(Error::OperationFailed);
+        }
+
+        Ok((
+            Array { handle: res1_handle }, 
+            Array { handle: res2_handle }
+        ))
+    }
+}
+
+
+    
+
     /// Trigger evaluation
     pub fn eval(&self) -> Result<()> {
         unsafe {
@@ -158,6 +236,10 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             let shape_ptr= sys::mlx_array_shape(self.handle);
             std::slice::from_raw_parts(shape_ptr, ndim).iter().map(|&x| Ok(x as usize)).collect()
         }
+    }
+
+    pub fn ndim(&self) -> usize {
+        unsafe { sys::mlx_array_ndim(self.handle) }
     }
 
     // reshape method to change the shape of the array

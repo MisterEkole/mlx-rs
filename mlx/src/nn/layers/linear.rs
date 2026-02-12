@@ -1,33 +1,107 @@
 // mlx/src/nn/layers/linear.rs
 
+// mlx/src/nn/layers/linear.rs
+
+use crate::{Array, Result, Dtype};
+use crate::nn::Module;
+
+/// A linear (fully connected) layer.
+/// 
+/// Applies a linear transformation to the incoming data: y = xA^T + b
 pub struct Linear {
-    weight: Array,
-    bias: Option<Array>,
+    pub weight: Array,
+    pub bias: Option<Array>,
+    pub in_features: usize,
+    pub out_features: usize,
 }
-//TODO: Add a method to initialize weights and bias (e.g., random normal for weights, zeros for bias)
+
 impl Linear {
-    pub fn new(input_dims: usize, output_dims: usize, has_bias: bool) -> crate::Result<Self> {
-        let weight = Array::random_normal(&[output_dims, input_dims])?; 
+    /// Creates a new Linear layer.
+    /// 
+    /// # Arguments
+    /// * `in_features` - Size of each input sample.
+    /// * `out_features` - Size of each output sample.
+    /// * `bias` - If set to false, the layer will not learn an additive bias.
+    /// * `key` - The PRNG key for weight initialization.
+    pub fn new(in_features: usize, out_features: usize, bias: bool, key: &Array) -> Result<Self> {
+        // PyTorch initialization: U(-sqrt(k), sqrt(k)) where k = 1/in_features
+        let k = 1.0 / (in_features as f32);
+        let bound = k.sqrt();
         
-        let bias = if has_bias {
-            Some(Array::full(&[output_dims as i32], 0.0, crate::Dtype::Float32)?)
+        // Split the key: 0 for weight, 1 for bias (if needed)
+        let (w_key, b_key) = key.split()?;
+    
+        // Weight shape: [out_features, in_features]
+        let weight = Array::random_uniform(
+            &[out_features, in_features],
+            -bound,
+            bound,
+            Dtype::Float32,
+            &w_key,
+        )?;
+        
+        let bias_array = if bias {
+            Some(Array::random_uniform(
+                &[out_features],
+                -bound,
+                bound,
+                Dtype::Float32,
+                &b_key,
+            )?)
         } else {
             None
         };
-
-        Ok(Self { weight, bias })
+        
+        Ok(Self {
+            weight,
+            bias: bias_array,
+            in_features,
+            out_features,
+        })
+    }
+    
+    /// Creates a Linear layer from existing weights.
+    pub fn from_weights(weight: Array, bias: Option<Array>) -> Result<Self> {
+        let shape = weight.shape()?;
+        if shape.len() != 2 {
+            return Err(crate::Error::InvalidShape(
+                format!("Weight must be 2D, got shape {:?}", shape)
+            ));
+        }
+        
+        Ok(Self {
+            out_features: shape[0],
+            in_features: shape[1],
+            weight,
+            bias,
+        })
     }
 }
 
 impl Module for Linear {
-    fn forward(&self, x: &Array) -> crate::Result<Array> {
-      
-        let mut out = x.matmul(&self.weight.transpose_default()?)?;
+    /// Computes y = x @ W^T + b
+    fn forward(&self, x: &Array) -> Result<Array> {
+        // In MLX, we typically store weights as [Out, In]
+        // To compute the dot product, we transpose the weights to [In, Out]
+        // result: [Batch, In] @ [In, Out] -> [Batch, Out]
+        let mut out = x.matmul(&self.weight.transpose(&[])?)?;
         
         if let Some(ref b) = self.bias {
             out = out.add(b)?;
         }
         
         Ok(out)
+    }
+ 
+    fn parameters(&self) -> Vec<&Array> {
+        let mut params = vec![&self.weight];
+        if let Some(ref b) = self.bias {
+            params.push(b);
+        }
+        params
+    }
+   
+    fn train(&mut self, _training: bool) {
+    
     }
 }

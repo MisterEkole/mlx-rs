@@ -1,8 +1,13 @@
 // mlx/src/nn/mod.rs
+pub mod module;  // Points to module.rs
+pub mod layers;  // Points to the layers/ folder
+pub mod losses;
 
-pub trait Module {
-    fn forward(&self, x: &Array) -> crate::Result<Array>;
-    
-    // In the future, you'll add methods to get parameters for the optimizer
-    // fn parameters(&self) -> Vec<&Array>;
-}
+// 2. Re-export for the user
+// This allows: use mlx::nn::Module;
+pub use module::Module;
+pub use losses::*; 
+
+
+// This allows: use mlx::nn::Linear; (instead of mlx::nn::layers::linear::Linear)
+pub use layers::*;

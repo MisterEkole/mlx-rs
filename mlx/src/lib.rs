@@ -7,6 +7,7 @@ pub mod array;
 pub mod dtype;
 pub mod device;
 pub mod operations; 
+pub mod nn;
 
 
 // 2. Re-export items so users can just type `mlx::Array` instead of `mlx::array::Array`
@@ -25,7 +26,9 @@ pub enum Error {
     NullPointer,
     OperationFailed,
     InvalidUtf8,
-    // You can add more errors here as you grow
+    MlxError(i32),
+    InvalidShape(String)
+    
 }
 
 impl fmt::Display for Error {
@@ -34,6 +37,8 @@ impl fmt::Display for Error {
             Error::NullPointer => write!(f, "Null pointer returned from MLX"),
             Error::OperationFailed => write!(f, "MLX operation failed"),
             Error::InvalidUtf8 => write!(f, "Invalid UTF-8 in MLX string"),
+            Error::MlxError(code) => write!(f, "MLX error with code: {}", code),
+            Error::InvalidShape(msg) => write!(f, "Invalid shape: {}", msg),
         }
     }
 }

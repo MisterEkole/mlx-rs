@@ -12,4 +12,5 @@ mlx-sys = { path = "../mlx-sys" }
 name = "basic_ops"
 
 [[example]]
-name = "matrix_ops"
+name = "mlp"
+

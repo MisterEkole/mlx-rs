@@ -55,3 +55,16 @@ impl Dtype {
         }
     }
 }
+
+
+impl From<Dtype> for sys::mlx_dtype_ {
+    fn from(dtype: Dtype) -> Self {
+        dtype.to_sys()
+    }
+}
+
+impl From<sys::mlx_dtype_> for Dtype {
+    fn from(sys_dtype: sys::mlx_dtype_) -> Self {
+        Dtype::from_sys(sys_dtype)
+    }
+}
