@@ -57,7 +57,7 @@ mlx = { path = "path/to/mlx-rs/mlx" }
 
 ```bash
 # Clone this repository
-git clone https://github.com/yourusername/mlx-rs.git
+git clone https://github.com/MisterEkole/mlx-rs.git
 cd mlx-rs
 
 # Set MLX_C_PATH to your mlx-c installation
