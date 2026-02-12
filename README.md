@@ -21,7 +21,7 @@ This repository contains two crates:
 - **`mlx-sys`**: Low-level FFI bindings to mlx-c (unsafe)
 - **`mlx`**: High-level safe Rust API (recommended for users)
 
-## Installation
+<!-- ## Installation
 
 ### Prerequisites
 
@@ -94,7 +94,7 @@ fn main() -> Result<()> {
     
     Ok(())
 }
-```
+``` -->
 
 ## API Coverage
 
