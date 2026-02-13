@@ -21,14 +21,19 @@ This repository contains two crates:
 - **`mlx-sys`**: Low-level FFI bindings to mlx-c (unsafe)
 - **`mlx`**: High-level safe Rust API (recommended for users)
 
-<!-- ## Installation
+## 🧪 Installation & Setup
+
+**Note:** These instructions are for the `release` branch, which uses dynamic binding generation.
 
 ### Prerequisites
 
 1. **macOS with Apple Silicon** (M1, M2, M3, or later)
-2. **MLX C library** installed
+2. **Xcode Command Line Tools**: `xcode-select --install`
+3. **CMake**: `brew install cmake`
 
-#### Installing MLX C
+### Step 1: Build the MLX-C Engine
+
+`mlx-rs` relies on the C-wrapper to interface with the C++ core. You must build this locally first:
 
 ```bash
 # Clone mlx-c
@@ -39,110 +44,52 @@ cd mlx-c
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
-
-# Install (optional, or note the path for MLX_C_PATH)
-sudo make install
 ```
 
-### Using mlx-rs in Your Project
-
-Add to your `Cargo.toml`:
-
-```toml
-[dependencies]
-mlx = { path = "path/to/mlx-rs/mlx" }
-```
-
-### Building from Source
+### Step 2: Setup mlx-rs
 
 ```bash
-# Clone this repository
-git clone https://github.com/MisterEkole/mlx-rs.git
+# Clone the repository and switch to the release branch
+git clone -b release https://github.com/MisterEkole/mlx-rs.git
 cd mlx-rs
 
-# Set MLX_C_PATH to your mlx-c installation
-export MLX_C_PATH=/path/to/mlx-c/build
+# Set the critical environment variable (Replace with your actual path from Step 1)
+export MLX_C_PATH=/path/to/your/mlx-c
 
-# Build with mlx-c bindings
-cargo build --features mlx-c-bindings
-
-# Or build with placeholder types (for development without mlx-c)
-cargo build
+# Run the pre-flight check script to verify libraries are found
+chmod +x check_env.sh
+./check_env.sh
 ```
 
-## Usage Example
+**CRITICAL:** You must build the mlx-sys crate first. This triggers the build script to generate a fresh `bindings.rs` file tailored to your local machine.
 
-```rust
-use mlx::{Array, Dtype, Result};
+```bash
+# Build the sys crate to generate bindings.rs
+cargo build -p mlx-sys
+```
 
-fn main() -> Result<()> {
-    // Create arrays
-    let a = Array::from_slice(&[1.0, 2.0, 3.0], &[3], Dtype::Float32)?;
-    let b = Array::from_slice(&[4.0, 5.0, 6.0], &[3], Dtype::Float32)?;
-    
-    // Perform operations (lazy evaluation)
-    let sum = a.add(&b)?;
-    let product = a.multiply(&b)?;
-    
-    // Force evaluation
-    sum.eval();
-    product.eval();
-    
-    // Print results
-    println!("Sum: {:?}", sum);
-    println!("Product: {:?}", product);
-    
-    Ok(())
-}
-``` -->
+### Step 3: Run Examples
 
-## API Coverage
+Once the environment is validated and bindings are generated, you can run the provided test cases:
 
-This is an early version. Currently implemented:
+```bash
+# Test basic array operations
+cargo run --example basic_ops
 
-- [x] Basic array creation from slices
-- [x] Element-wise addition and multiplication
-- [x] Array evaluation
-- [ ] Array indexing and slicing
-- [ ] Matrix operations
-- [ ] Neural network layers
-- [ ] Automatic differentiation
-- [ ] Custom kernels
-- [ ] Stream management
-- [ ] File I/O
+# Test a Convolutional Neural Network training loop
+cargo run --example cnn
+```
+
 
 ## Development Status
 
-**⚠️ Early Development**: This project is in early development. APIs may change.
+**⚠️ Early Development**: This project is in early development. APIs may change. Advanced features are being added regularly.
 
-### Current Limitations
-
-1. Only basic operations are implemented
-2. Requires mlx-c to be built and installed separately
-3. macOS/Apple Silicon only (following MLX's platform support)
-4. Not all MLX features are exposed yet
-
-### Roadmap
-
-- [ ] Complete array operations API
-- [ ] Neural network module (mlx.nn equivalent)
-- [ ] Optimizer implementations
-- [ ] Automatic differentiation (grad, value_and_grad)
-- [ ] Examples: LLM inference, training, etc.
-- [ ] Documentation and tutorials
-- [ ] Benchmarks against mlx-python
-
+**📊 For detailed project development and API coverage status, see [API_COVERAGE.md](API_COVERAGE.md)**
 
 ## Contributing
 
 Contributions are welcome! This project follows the same spirit as MLX - designed by ML researchers for ML researchers.
-
-<!-- ### Areas Needing Help
-
-1. Wrapping more mlx-c functions
-2. Writing examples and documentation
-3. Testing on different macOS/Apple Silicon configurations
-4. Performance benchmarking -->
 
 ## Architecture
 
