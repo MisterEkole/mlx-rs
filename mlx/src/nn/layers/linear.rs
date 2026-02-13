@@ -84,7 +84,9 @@ impl Module for Linear {
         // In MLX, we typically store weights as [Out, In]
         // To compute the dot product, we transpose the weights to [In, Out]
         // result: [Batch, In] @ [In, Out] -> [Batch, Out]
-        let mut out = x.matmul(&self.weight.transpose(&[])?)?;
+        let weight_t= self.weight.transpose(&[])?;
+        //println!("X shape: {:?}, Weight shape (T): {:?}", x.shape()?, self.weight.transpose(&[1, 0])?.shape()?);
+        let mut out = x.matmul(&weight_t)?;
         
         if let Some(ref b) = self.bias {
             out = out.add(b)?;
@@ -100,8 +102,30 @@ impl Module for Linear {
         }
         params
     }
+
+    /// Provides mutable access to the weights for the Optimizer
+    fn parameters_mut(&mut self) -> Vec<&mut Array> {
+        let mut params = vec![&mut self.weight];
+        if let Some(ref mut b) = self.bias {
+            params.push(b);
+        }
+        params
+    }
    
     fn train(&mut self, _training: bool) {
     
+    }
+
+    fn update_parameters(&mut self, new_params: &[Array]) {
+        if self.bias.is_some() {
+            if new_params.len() >= 2 {
+                self.weight = new_params[0].clone();
+                self.bias = Some(new_params[1].clone());
+            }
+        } else {
+            if !new_params.is_empty() {
+                self.weight = new_params[0].clone();
+            }
+        }
     }
 }

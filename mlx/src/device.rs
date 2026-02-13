@@ -36,12 +36,12 @@ impl Device {
         unsafe {
             let status = sys::mlx_set_default_device(self.handle);
             if status != 0 {
-                return Err(crate::Error::OperationFailed);
+                return Err(crate::Error::OperationFailed("Failed to set default device".into())); }
             }
             Ok(())
         }
     }
-}
+
 
 impl Drop for Device {
     fn drop(&mut self) {

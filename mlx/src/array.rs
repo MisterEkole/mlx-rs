@@ -36,6 +36,69 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
         }
     }
 
+
+    // mlx_arange helper to create a range of values (like np.arange)
+    pub fn arange(start: f64, stop: f64, step: f64, dtype: Dtype) -> Result<Self> {
+        let mut handle= sys::mlx_array { ctx: std::ptr::null_mut() };
+        unsafe {
+           
+            let stream = Self::default_stream();
+            
+            let status = sys::mlx_arange(
+                &mut handle,
+                start,
+                stop,
+                step,
+                dtype.into(), // Conversion from your Dtype to sys::mlx_dtype
+                stream,
+            );
+
+            if status != 0 {
+                return Err(Error::OperationFailed("mlx_arange failed".into()));
+            }
+            Ok(Array { handle })
+        }
+    }
+
+    pub fn equal(&self, other: &Array) -> Result<Self> {
+      let mut handle= sys::mlx_array { ctx: std::ptr::null_mut() };
+        unsafe {
+            
+            let stream = Self::default_stream();
+            let status = sys::mlx_equal(
+                &mut handle,
+                self.handle,
+                other.handle,
+                stream,
+            );
+
+            if status != 0 {
+                return Err(Error::OperationFailed("mlx_equal failed".into()));
+            }
+            Ok(Array { handle })
+        }
+    }
+
+
+    pub fn cast(&self, dtype: Dtype) -> Result<Self> {
+        let mut handle= sys::mlx_array { ctx: std::ptr::null_mut() };
+        unsafe {
+            let stream = Self::default_stream();
+            
+            let status = sys::mlx_astype(
+                &mut handle,
+                self.handle,
+                dtype.into(),
+                stream,
+            );
+
+            if status != 0 {
+                return Err(Error::OperationFailed("mlx_astype failed".into()));
+            }
+            Ok(Array { handle })
+        }
+    }
+
     /// Create an array from a slice of data
     pub fn from_slice<T>(data: &[T], shape: &[usize], dtype: Dtype) -> Result<Self> {
         let shape_i32: Vec<c_int> = shape.iter().map(|&x| x as c_int).collect();
@@ -97,7 +160,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             );
             
             if status != 0 || res_handle.ctx.is_null() {
-                Err(Error::OperationFailed)
+                Err(Error::OperationFailed("Failed to add arrays".into()))
             } else {
                 Ok(Array { handle: res_handle })
             }
@@ -112,7 +175,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             let status = sys::mlx_subtract(&mut res_handle, self.handle, other.handle, Self::default_stream());
             
             if status != 0 || res_handle.ctx.is_null() {
-                Err(Error::OperationFailed)
+                Err(Error::OperationFailed("Failed to subtract arrays".into()))
             } else {
                 Ok(Array { handle: res_handle })
             }
@@ -126,7 +189,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             let status = sys::mlx_multiply(&mut res_handle, self.handle, other.handle, Self::default_stream());
             
             if status != 0 || res_handle.ctx.is_null() {
-                Err(Error::OperationFailed)
+                Err(Error::OperationFailed("Failed to multiply arrays".into()))
             } else {
                 Ok(Array { handle: res_handle })
             }
@@ -140,7 +203,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             let status = sys::mlx_matmul(&mut res_handle, self.handle, other.handle, Self::default_stream());
             
             if status != 0 || res_handle.ctx.is_null() {
-                Err(Error::OperationFailed)
+                Err(Error::OperationFailed("Failed to perform matrix multiplication".into()))
             } else {
                 Ok(Array { handle: res_handle })
             }
@@ -154,7 +217,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             let status = sys::mlx_divide(&mut res_handle, self.handle, other.handle, Self::default_stream());
             
             if status != 0 || res_handle.ctx.is_null() {
-                Err(Error::OperationFailed)
+                Err(Error::OperationFailed("Failed to divide arrays".into()))
             } else {
                 Ok(Array { handle: res_handle })
             }
@@ -179,7 +242,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
         unsafe {
             let mut res_handle = crate::sys::mlx_array { ctx: std::ptr::null_mut() };
             let status = crate::sys::mlx_random_key(&mut res_handle, seed);
-            if status != 0 || res_handle.ctx.is_null() { Err(Error::OperationFailed) } else { Ok(Array { handle: res_handle }) }
+            if status != 0 || res_handle.ctx.is_null() { Err(Error::OperationFailed("Failed to generate random key".into())) } else { Ok(Array { handle: res_handle }) }
         }
     }
 
@@ -197,7 +260,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             Self::default_stream()
         );
         if status != 0 || res1_handle.ctx.is_null() || res2_handle.ctx.is_null() {
-            return Err(Error::OperationFailed);
+            return Err(Error::OperationFailed("Failed to split random key".into()));
         }
 
         Ok((
@@ -210,24 +273,30 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
 
     
 
-    /// Trigger evaluation
-    pub fn eval(&self) -> Result<()> {
+    /// Trigger evaluation for multiple arrays
+ 
+    pub fn eval_all(arrays: &[Array]) -> Result<()> {
+        if arrays.is_empty() { return Ok(()); }
         unsafe {
-            let vec = sys::mlx_vector_array_new();
-            
-            // Append THIS array to the vector
-            let status = sys::mlx_vector_array_append_data(vec, &self.handle, 1);
-            
-            if status != 0 {
-                sys::mlx_vector_array_free(vec);
-                return Err(Error::OperationFailed);
+            let handles: Vec<sys::mlx_array> = arrays.iter().map(|a| a.handle).collect();
+            let vec_handle = sys::mlx_vector_array_new_data(handles.as_ptr(), handles.len());
+
+            if vec_handle.ctx.is_null() {
+                return Err(Error::OperationFailed("Failed to create evaluation vector".into()));
             }
 
-            sys::mlx_eval(vec);
-            sys::mlx_vector_array_free(vec);
+            sys::mlx_eval(vec_handle);
+            sys::mlx_vector_array_free(vec_handle);
             Ok(())
         }
     }
+
+
+    pub fn eval(&self) -> Result<()> {
+        Self::eval_all(&[self.clone()])
+    }
+
+
 
     // shape method to get the shape of the array
     pub fn shape(&self) -> Result<Vec<usize>> {
@@ -257,7 +326,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
         );
 
         if status != 0 || res_handle.ctx.is_null() {
-            Err(Error::OperationFailed)
+            Err(Error::OperationFailed("Failed to reshape array".into()))
         } else {
             Ok(Array { handle: res_handle })
         }
@@ -357,7 +426,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
         sys::mlx_vector_array_free(vec_handle);
 
         if status != 0 || res_handle.ctx.is_null() {
-            Err(Error::OperationFailed)
+            Err(Error::OperationFailed("Failed to concatenate arrays".into()))
         } else {
             Ok(Array { handle: res_handle })
         }
@@ -378,7 +447,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
         );
 
         if status != 0 || res_handle.ctx.is_null() {
-            Err(crate::Error::OperationFailed)
+            Err(crate::Error::OperationFailed("Failed to create full array".into()))
         } else {
             Ok(Array { handle: res_handle })
         }
@@ -389,7 +458,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
     // Helper to reduce boilerplate
     pub (crate)fn check_status(&self, status: i32, handle: sys::mlx_array) -> Result<Array> {
         if status != 0 || handle.ctx.is_null() {
-            Err(Error::OperationFailed)
+            Err(Error::OperationFailed("Failed to perform operation".into()))
         } else {
             Ok(Array { handle })
         }
@@ -406,7 +475,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
             let data_ptr = sys::mlx_array_data_float32(self.handle);
 
             if data_ptr.is_null() {
-                return Err(Error::OperationFailed);
+                return Err(Error::OperationFailed("Failed to retrieve data pointer".into()));
             }
 
             // Cast the float pointer to a T pointer
@@ -426,7 +495,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
            
             let size = sys::mlx_array_size(self.handle); 
             if data_ptr.is_null() {
-                return Err(Error::OperationFailed);
+                return Err(Error::OperationFailed("Failed to retrieve array data pointer".into()));
             }
             let slice = std::slice::from_raw_parts(data_ptr, size as usize);
             
@@ -443,6 +512,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
         }
     }
 }
+    
 
 // Memory Management
 impl Drop for Array {

@@ -35,9 +35,9 @@ macro_rules! define_conv {
                 key: &Array,
             ) -> Result<Self> {
                 let fan_in = in_channels * kernel_size.iter().product::<usize>();
-                let (w_key, __b_key) = key.split()?;
+                let (w_key, _b_key) = key.split()?;
 
-                // Layout: [Out, Kernel..., In/Groups]
+                // MLX Weight Layout: [Out, Kernel..., In/Groups]
                 let mut w_shape = vec![out_channels];
                 w_shape.extend(kernel_size);
                 w_shape.push(in_channels / groups as usize);
@@ -55,7 +55,10 @@ macro_rules! define_conv {
 
         impl Module for $name {
             fn forward(&self, x: &Array) -> Result<Array> {
+                // Perform the core convolution operation
                 let mut out = x.$op(&self.weight, self.stride, self.padding, self.dilation, self.groups)?;
+                
+                // Add bias if it exists
                 if let Some(ref b) = self.bias {
                     out = out.add(b)?;
                 }
@@ -64,11 +67,36 @@ macro_rules! define_conv {
 
             fn parameters(&self) -> Vec<&Array> {
                 let mut p = vec![&self.weight];
-                if let Some(ref b) = self.bias { p.push(b); }
+                if let Some(ref b) = self.bias {
+                    p.push(b);
+                }
                 p
             }
+
+            fn parameters_mut(&mut self) -> Vec<&mut Array> {
+                let mut p = vec![&mut self.weight];
+                if let Some(ref mut b) = self.bias {
+                    p.push(b);
+                }   
+                p
+            }
+
+            /// Crucial for training: Updates the internal array handles with new weights from the optimizer.
+            fn update_parameters(&mut self, new_params: &[Array]) {
+                if !new_params.is_empty() {
+                    // 1. Update the weight handle (mandatory)
+                    self.weight = new_params[0].clone();
+                    
+                    // 2. Update the bias handle (if it exists)
+                    if self.bias.is_some() && new_params.len() > 1 {
+                        self.bias = Some(new_params[1].clone());
+                    }
+                }
+            }
             
-            fn train(&mut self, _: bool) {}
+            fn train(&mut self, _training: bool) {
+                // Convolutional layers behave the same during training and inference
+            }
         }
     };
 }
@@ -106,8 +134,8 @@ macro_rules! define_conv_transpose {
                 bias: bool,
                 key: &Array,
             ) -> Result<Self> {
-                let fan_in = in_channels; // Fan-in for transposed is based on input channels
-                let (w_key, __b_key) = key.split()?;
+                let fan_in = in_channels; 
+                let (w_key, _b_key) = key.split()?;
 
                 // Transposed Layout: [In, Kernel..., Out/Groups]
                 let mut w_shape = vec![in_channels];
@@ -146,8 +174,31 @@ macro_rules! define_conv_transpose {
                 if let Some(ref b) = self.bias { p.push(b); }
                 p
             }
+                 fn parameters_mut(&mut self) -> Vec<&mut Array> {
+                let mut p = vec![&mut self.weight];
+                if let Some(ref mut b) = self.bias {
+                    p.push(b);
+                }   
+                p
+            }
 
-            fn train(&mut self, _: bool) {}
+
+            /// Synchronizes the C++ handles with the new weights from the optimizer
+            fn update_parameters(&mut self, new_params: &[Array]) {
+                if !new_params.is_empty() {
+                    // Update weight handle
+                    self.weight = new_params[0].clone();
+                    
+                    // Update bias handle if it exists in the parameter list
+                    if self.bias.is_some() && new_params.len() > 1 {
+                        self.bias = Some(new_params[1].clone());
+                    }
+                }
+            }
+
+            fn train(&mut self, _training: bool) {
+                // No-op: Transposed convs are stationary during inference
+            }
         }
     };
 }

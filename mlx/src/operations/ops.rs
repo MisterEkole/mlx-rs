@@ -197,7 +197,7 @@ impl Array {
     pub fn index(&self, idx: usize) -> Result<Array> {
         let shape = self.shape()?;
         if shape.is_empty() {
-            return Err(crate::Error::OperationFailed);
+            return Err(crate::Error::OperationFailed("index failed: empty array".into()));
         }
         let mut start = vec![0; shape.len()];
         let mut stop: Vec<i32> = shape.iter().map(|&s| s as i32).collect();
@@ -223,7 +223,7 @@ impl Array {
                 t.handle,
                 Self::default_stream()
             );
-            if status != 0 { return Err(crate::Error::OperationFailed); } Ok(Array { handle: res_handle })
+            if status != 0 { return Err(crate::Error::OperationFailed("greater_than_scalar failed".into())); } Ok(Array { handle: res_handle })
         }
     }
 
@@ -243,7 +243,7 @@ impl Array {
                 g, 
                 Self::default_stream()
             );
-            if status != 0 { return Err(crate::Error::OperationFailed); } 
+            if status != 0 { return Err(crate::Error::OperationFailed("conv1d failed".into())); } 
             Ok(Array { handle: res })
         }
     }
@@ -252,7 +252,7 @@ impl Array {
         unsafe {
             let mut res = sys::mlx_array { ctx: std::ptr::null_mut() };
             let status = sys::mlx_conv2d(&mut res, self.handle, w.handle, s[0], s[1], p[0], p[1], d[0], d[1], g, Self::default_stream());
-            if status != 0 { return Err(crate::Error::OperationFailed); } Ok(Array { handle: res })
+            if status != 0 { return Err(crate::Error::OperationFailed("conv2d failed".into())); } Ok(Array { handle: res })
         }
     }
 
@@ -260,7 +260,7 @@ impl Array {
         unsafe {
             let mut res = sys::mlx_array { ctx: std::ptr::null_mut() };
             let status = sys::mlx_conv3d(&mut res, self.handle, w.handle, s[0], s[1], s[2], p[0], p[1], p[2], d[0], d[1], d[2], g, Self::default_stream());
-            if status != 0 { return Err(crate::Error::OperationFailed); } Ok(Array { handle: res })
+            if status != 0 { return Err(crate::Error::OperationFailed("conv3d failed".into())); } Ok(Array { handle: res })
         }
     }
 
@@ -284,7 +284,7 @@ impl Array {
                 g, 
                 Self::default_stream()
             );
-            if status != 0 { return Err(crate::Error::OperationFailed); } 
+            if status != 0 { return Err(crate::Error::OperationFailed("conv_transpose1d failed".into())); } 
             Ok(Array { handle: res })
         }
     }
@@ -301,7 +301,7 @@ impl Array {
                 dilation[0], dilation[1], out_padding[0], out_padding[1],
                 groups, Self::default_stream()
             );
-            if status != 0 { return Err(crate::Error::OperationFailed); } Ok(Array { handle: res})
+            if status != 0 { return Err(crate::Error::OperationFailed("conv_transpose2d failed".into())); } Ok(Array { handle: res})
         }
     }
 
@@ -317,7 +317,7 @@ impl Array {
                 dilation[0], dilation[1], dilation[2], out_padding[0], out_padding[1], out_padding[2],
                 groups, Self::default_stream()
             );
-           if status != 0 { return Err(crate::Error::OperationFailed); } Ok(Array { handle: res })
+           if status != 0 { return Err(crate::Error::OperationFailed("conv_transpose3d failed".into())); } Ok(Array { handle: res })
         }
     }
 
@@ -393,6 +393,33 @@ impl Array {
             self.check_status(status, res_handle)
         }
     }
+
+    //backward primitve
+    // pub fn backward(&self, parameters: &[&Array]) -> Result<Vec<Array>> {
+    //     unsafe {
+           
+    //         let param_handles: Vec<_> = parameters.iter().map(|a| a.handle).collect();
+        
+    //         let mut grad_handles = vec![
+    //             crate::sys::mlx_array { ctx: std::ptr::null_mut() }; 
+    //             parameters.len()
+    //         ];
+    //         let status = crate::sys::mlx_value_and_grad(
+    //             self.handle,
+    //             param_handles.as_ptr(),
+    //             parameters.len(),
+    //             grad_handles.as_mut_ptr(),
+    //         );
+
+    //         if status != 0 {
+    //             return Err(crate::Error::OperationFailed("backward operation failed".into()));
+    //         }
+    //         Ok(grad_handles.into_iter().map(|h| Array { handle: h }).collect())
+    //     }
+    // }
+
+
+
 }
 
 

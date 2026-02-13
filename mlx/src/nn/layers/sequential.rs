@@ -39,10 +39,29 @@ impl Module for Sequential {
             .collect()
     }
 
+    /// Provides mutable access to the weights for the Optimizer
+  fn parameters_mut(&mut self) -> Vec<&mut Array> {
+    self.layers
+        .iter_mut()
+        .flat_map(|layer| layer.parameters_mut())
+        .collect()
+    }
+
     /// Sets the training mode for all constituent layers.
     fn train(&mut self, training: bool) {
         for layer in &mut self.layers {
             layer.train(training);
+        }
+    }
+
+
+    fn update_parameters(&mut self, new_params: &[Array]) {
+        let mut i = 0;
+        for layer in &mut self.layers {
+            let n = layer.parameters().len();
+            // Give the layer the slice of params it owns
+            layer.update_parameters(&new_params[i..i+n]);
+            i += n;
         }
     }
 }
