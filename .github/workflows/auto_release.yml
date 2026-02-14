@@ -1,33 +1,51 @@
-name: Auto-Sync Master to Release
+name: Sync Master to Release
 
 on:
   push:
     branches:
       - master
 
-permissions:
-  contents: write
-
 jobs:
-  sync-branches:
+  sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0 # Essential to fetch all history for merging
 
-      - name: Configure Git Bot
+      - name: Configure Git Identity
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Cherry-pick latest commit to Release
+      - name: Sync Master into Release
         run: |
-         
+          # 1. Switch to release branch
           git checkout release
           
-         
-          git cherry-pick ${{ github.sha }}
-        
+          # 2. Check if there are actually differences
+          # This prevents the "nothing to commit" error
+          if git diff --quiet release..master; then
+            echo "Branches are already in sync. Nothing to do."
+            exit 0
+          fi
+
+          # 3. Attempt a merge
+          # --no-edit accepts the default merge message
+          # --strategy-option theirs ensures that if a line conflicts, Master wins
+          echo "Merging changes from master..."
+          if git merge master --no-edit -X theirs; then
+            echo "Merge successful."
+          else
+            echo "Merge encountered issues, forcing master state..."
+            git checkout master -- .
+            git add .
+            git commit -m "chore: force sync master to release via checkout"
+          fi
+
+          # 4. Final push
           git push origin release
