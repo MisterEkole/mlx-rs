@@ -456,7 +456,7 @@ pub(crate)fn default_stream() -> sys::mlx_stream {
 
 
     // Helper to reduce boilerplate
-    pub (crate)fn check_status(&self, status: i32, handle: sys::mlx_array) -> Result<Array> {
+    pub fn check_status(&self, status: i32, handle: sys::mlx_array) -> Result<Array> {
         if status != 0 || handle.ctx.is_null() {
             Err(Error::OperationFailed("Failed to perform operation".into()))
         } else {
@@ -541,11 +541,29 @@ impl Clone for Array {
 }
 
 // Debug trait for easy printing
-impl fmt ::Debug for Array {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Array(handle: {:?})", self.handle)
-    }
 
+impl fmt::Debug for Array {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        unsafe {
+            let mut str_handle = crate::sys::mlx_string { ctx: std::ptr::null_mut() };
+            crate::sys::mlx_array_tostring(&mut str_handle, self.handle);
+            let c_str_ptr = crate::sys::mlx_string_data(str_handle);
+            
+            if c_str_ptr.is_null() {
+                write!(f, "Array(<failed to read data>)")?;
+            } else {
+               
+                let c_str = std::ffi::CStr::from_ptr(c_str_ptr);
+                write!(f, "{}", c_str.to_string_lossy())?;
+            }
+
+            if !str_handle.ctx.is_null() {
+                crate::sys::mlx_string_free(str_handle);
+            }
+            
+            Ok(())
+        }
+    }
 }
 
 impl std::fmt::Display for Array {
