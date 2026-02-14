@@ -147,3 +147,186 @@ impl Optimizer for Adam {
     }
  
 }
+
+
+/// AdamW Optimizer (Adam with decoupled Weight Decay)
+pub struct AdamW {
+    pub lr: f32,
+    pub beta1: f32,
+    pub beta2: f32,
+    pub eps: f32,
+    pub weight_decay: f32,
+    m: std::cell::RefCell<Vec<Array>>,
+    v: std::cell::RefCell<Vec<Array>>,
+    count: std::cell::Cell<i32>,
+}
+
+impl AdamW {
+    pub fn new(lr: f32, weight_decay: f32, params: &[Array]) -> Result<Self> {
+        let m = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
+        let v = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
+        Ok(Self {
+            lr,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1e-8,
+            weight_decay,
+            m: std::cell::RefCell::new(m),
+            v: std::cell::RefCell::new(v),
+            count: std::cell::Cell::new(0),
+        })
+    }
+}
+
+impl Optimizer for AdamW {
+    fn update(&mut self, params: Vec<&mut Array>, grads: Vec<Array>) -> Result<()> {
+        let t = self.count.get() + 1;
+        self.count.set(t);
+        let mut ms = self.m.borrow_mut();
+        let mut vs = self.v.borrow_mut();
+
+        for (i, (p, g)) in params.into_iter().zip(grads.into_iter()).enumerate() {
+            // 1. Decoupled Weight Decay: p = p * (1 - lr * wd)
+            let decay = 1.0 - (self.lr * self.weight_decay);
+            let p_decayed = p.multiply_scalar(decay)?;
+
+            // 2. Standard Adam updates on ms[i] and vs[i]
+            let m_new = ms[i].multiply_scalar(self.beta1)?.add(&g.multiply_scalar(1.0 - self.beta1)?)?;
+            let v_new = vs[i].multiply_scalar(self.beta2)?.add(&g.multiply(&g)?.multiply_scalar(1.0 - self.beta2)?)?;
+
+            // 3. Bias correction and Step
+            let alpha_t = self.lr * (1.0 - self.beta2.powi(t)).sqrt() / (1.0 - self.beta1.powi(t));
+            let denom = v_new.sqrt()?.add_scalar(self.eps)?;
+            let step = m_new.divide(&denom)?.multiply_scalar(alpha_t)?;
+            
+            *p = p_decayed.subtract(&step)?;
+            ms[i] = m_new;
+            vs[i] = v_new;
+        }
+        Ok(())
+    }
+}
+
+/// AdaGrad Optimizer
+pub struct AdaGrad {
+    pub lr: f32,
+    pub eps: f32,
+    sum_sq_grad: std::cell::RefCell<Vec<Array>>,
+}
+
+impl AdaGrad {
+    pub fn new(lr: f32, params: &[Array]) -> Result<Self> {
+        let s = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
+        Ok(Self { lr, eps: 1e-10, sum_sq_grad: std::cell::RefCell::new(s) })
+    }
+}
+
+impl Optimizer for AdaGrad {
+    fn update(&mut self, params: Vec<&mut Array>, grads: Vec<Array>) -> Result<()> {
+        let mut ss = self.sum_sq_grad.borrow_mut();
+        for (i, (p, g)) in params.into_iter().zip(grads.into_iter()).enumerate() {
+            let s_new = ss[i].add(&g.multiply(&g)?)?;
+            let denom = s_new.sqrt()?.add_scalar(self.eps)?;
+            *p = p.subtract(&g.multiply_scalar(self.lr)?.divide(&denom)?)?;
+            ss[i] = s_new;
+        }
+        Ok(())
+    }
+}
+
+/// RMSprop Optimizer
+pub struct RMSprop {
+    pub lr: f32,
+    pub alpha: f32,
+    pub eps: f32,
+    v: std::cell::RefCell<Vec<Array>>,
+}
+
+impl RMSprop {
+    pub fn new(lr: f32, params: &[Array]) -> Result<Self> {
+        let v = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
+        Ok(Self { lr, alpha: 0.99, eps: 1e-8, v: std::cell::RefCell::new(v) })
+    }
+}
+
+impl Optimizer for RMSprop {
+    fn update(&mut self, params: Vec<&mut Array>, grads: Vec<Array>) -> Result<()> {
+        let mut vs = self.v.borrow_mut();
+        for (i, (p, g)) in params.into_iter().zip(grads.into_iter()).enumerate() {
+            let v_new = vs[i].multiply_scalar(self.alpha)?.add(&g.multiply(&g)?.multiply_scalar(1.0 - self.alpha)?)?;
+            let denom = v_new.sqrt()?.add_scalar(self.eps)?;
+            *p = p.subtract(&g.multiply_scalar(self.lr)?.divide(&denom)?)?;
+            vs[i] = v_new;
+        }
+        Ok(())
+    }
+}
+
+/// Lion Optimizer (EvoLved Sign Momentum)
+pub struct Lion {
+    pub lr: f32,
+    pub beta1: f32,
+    pub beta2: f32,
+    pub weight_decay: f32,
+    exp_avg: std::cell::RefCell<Vec<Array>>,
+}
+
+impl Lion {
+    pub fn new(lr: f32, params: &[Array]) -> Result<Self> {
+        let m = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
+        Ok(Self { lr, beta1: 0.9, beta2: 0.99, weight_decay: 0.0, exp_avg: std::cell::RefCell::new(m) })
+    }
+}
+
+impl Optimizer for Lion {
+    fn update(&mut self, params: Vec<&mut Array>, grads: Vec<Array>) -> Result<()> {
+        let mut ms = self.exp_avg.borrow_mut();
+        for (i, (p, g)) in params.into_iter().zip(grads.into_iter()).enumerate() {
+            // Decoupled Weight Decay
+            if self.weight_decay > 0.0 {
+                *p = p.multiply_scalar(1.0 - self.lr * self.weight_decay)?;
+            }
+
+            // c = beta1 * m + (1 - beta1) * g
+            let c = ms[i].multiply_scalar(self.beta1)?.add(&g.multiply_scalar(1.0 - self.beta1)?)?;
+            
+            // update = lr * sign(c)
+            // (Assuming you have a .sign() method in ops.rs, or use where_op to simulate sign)
+            let update = c.sign()?.multiply_scalar(self.lr)?;
+            *p = p.subtract(&update)?;
+
+            // m = beta2 * m + (1 - beta2) * g
+            ms[i] = ms[i].multiply_scalar(self.beta2)?.add(&g.multiply_scalar(1.0 - self.beta2)?)?;
+        }
+        Ok(())
+    }
+}
+
+/// Adafactor
+pub struct Adafactor {
+    pub lr: f32,
+    pub eps1: f32,
+    pub eps2: f32,
+    v: std::cell::RefCell<Vec<Array>>,
+}
+
+impl Adafactor {
+    pub fn new(lr: f32, params: &[Array]) -> Result<Self> {
+        let v = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
+        Ok(Self { lr, eps1: 1e-30, eps2: 1e-3, v: std::cell::RefCell::new(v) })
+    }
+}
+
+impl Optimizer for Adafactor {
+    fn update(&mut self, params: Vec<&mut Array>, grads: Vec<Array>) -> Result<()> {
+        let mut vs = self.v.borrow_mut();
+        for (i, (p, g)) in params.into_iter().zip(grads.into_iter()).enumerate() {
+            // Simplified update: v = v + g^2
+            let v_new = vs[i].add(&g.multiply(&g)?)?;
+            let r = g.divide(&v_new.sqrt()?.add_scalar(self.eps2)?)?;
+            *p = p.subtract(&r.multiply_scalar(self.lr)?)?;
+            vs[i] = v_new;
+        }
+        Ok(())
+    }
+}

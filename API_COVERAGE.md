@@ -85,16 +85,16 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| inv (matrix inverse) | 📋 | Planned |
-| norm (vector/matrix norms) | 📋 | Planned |
-| svd (Singular Value Decomposition) | 📋 | Planned |
-| eig, eigh (Eigenvalues) | 📋 | Planned |
-| qr (QR Decomposition) | 📋 | Planned |
-| cholesky | 📋 | Planned |
-| solve (linear systems) | 📋 | Planned |
-| solve_triangular | 📋 | Planned |
-| det, slogdet (Determinant) | 📋 | Planned |
-| pinv (Pseudo-inverse) | 📋 | Planned |
+| inv (matrix inverse) | ✅  | |
+| norm (vector/matrix norms) | ✅  | |
+| svd (Singular Value Decomposition) | ✅  |  |
+| eig, eigh (Eigenvalues) | ✅ |  |
+| qr (QR Decomposition) | ✅  | |
+| cholesky | ✅ | Planned |
+| solve (linear systems) | ✅ | |
+| solve_triangular | ✅  | |
+| det, slogdet (Determinant) | ✅  | |
+| pinv (Pseudo-inverse) | ✅  | |
 
 ---
 
@@ -102,12 +102,12 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| fft, ifft (1D) | 🚧 | In progress |
-| rfft, irfft (Real FFT) | 🚧 | In progress |
-| fft2, ifft2 (2D) | 📋 | Planned |
-| fftn, ifftn (N-dimensional) | 📋 | Planned |
-| fftshift, ifftshift | 📋 | Planned |
-| fftfreq, rfftfreq | 📋 | Planned |
+| fft, ifft (1D) | ✅ | |
+| rfft, irfft (Real FFT) | ✅ | |
+| fft2, ifft2 (2D) | ✅  | Planned |
+| fftn, ifftn (N-dimensional) |✅ | |
+| fftshift, ifftshift | ✅ | |
+| fftfreq, rfftfreq | ✅ | |
 
 ---
 
@@ -216,11 +216,11 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 |---------|--------|-------|
 | SGD | ✅ | With momentum support |
 | Adam | ✅ | |
-| AdamW | 📋| Planned |
-| AdaGrad | 📋 | Planned |
-| RMSprop | 📋 | Planned |
-| Lion | 📋 | Planned |
-| Adafactor | 📋 | Planned |
+| AdamW | ✅||
+| AdaGrad |✅| |
+| RMSprop | ✅| |
+| Lion | ✅| |
+| Adafactor | ✅| |
 
 ### Learning Rate Schedulers
 | Feature | Status | Notes |
