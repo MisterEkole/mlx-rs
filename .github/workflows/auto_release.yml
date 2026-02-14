@@ -1,0 +1,33 @@
+name: Auto-Sync Master to Release
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: Configure Git Bot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Cherry-pick latest commit to Release
+        run: |
+         
+          git checkout release
+          
+         
+          git cherry-pick ${{ github.sha }}
+        
+          git push origin release
