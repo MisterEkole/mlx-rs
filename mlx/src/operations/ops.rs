@@ -164,6 +164,44 @@ impl Array {
             self.check_status(status, res_handle)
         }
     }
+    
+    pub fn slice_axis(&self, axis: i32, start: i32, stop: i32) -> Result<Array> {
+        let shape = self.shape()?;
+        let ndim = shape.len();
+        let ax = if axis < 0 { 
+            (ndim as i32 + axis) as usize 
+        } else { 
+            axis as usize 
+        };
+        let mut starts = vec![0; ndim];
+        let mut stops: Vec<i32> = shape.iter().map(|&d| d as i32).collect();
+        let strides = vec![1; ndim];
+        starts[ax] = start;
+        stops[ax] = stop;
+        self.slice(&starts, &stops, &strides)
+    }
+
+    pub fn slice_axes(&self, axes: &[i32], starts_in: &[i32], stops_in: &[i32]) -> Result<Array> {
+        let shape = self.shape()?;
+        let ndim = shape.len();
+        let mut starts = vec![0; ndim];
+        let mut stops: Vec<i32> = shape.iter().map(|&d| d as i32).collect();
+        let strides = vec![1; ndim];
+
+        // Apply the slices to all requested axes
+        for i in 0..axes.len() {
+            let ax = if axes[i] < 0 { 
+                (ndim as i32 + axes[i]) as usize 
+            } else { 
+                axes[i] as usize 
+            };
+            
+            starts[ax] = starts_in[i];
+            stops[ax] = stops_in[i];
+        }
+
+        self.slice(&starts, &stops, &strides)
+    }
 
     pub fn index(&self, idx: usize) -> Result<Array> {
         let shape = self.shape()?;

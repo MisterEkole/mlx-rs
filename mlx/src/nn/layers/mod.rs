@@ -7,6 +7,7 @@ pub mod embedding;
 pub mod pooling;
 pub mod flatten;
 pub mod sequential;
+pub mod recurrent;
 
 
 
@@ -17,3 +18,4 @@ pub use activations::*;
 pub use pooling::*;
 pub use flatten::*;
 pub use sequential::*;
+pub use recurrent::*;
