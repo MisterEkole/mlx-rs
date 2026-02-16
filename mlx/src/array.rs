@@ -90,6 +90,9 @@ impl Array {
             Ok(Array { handle })
         }
     }
+    pub fn zeros(shape: &[i32], dtype: Dtype) -> Result<Array> {
+        Self::full(shape, 0.0, dtype)
+    }
 
     /// Random initialization (Uniform).
     pub fn random_uniform(shape: &[usize], low: f32, high: f32, dtype: Dtype, key: &Array) -> Result<Array> {

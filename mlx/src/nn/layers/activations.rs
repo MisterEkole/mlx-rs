@@ -159,3 +159,22 @@ pub fn tanh(x: &Array) -> Result<Array> {
     let status = crate::sys::mlx_tanh(&mut res_handle,x.handle,Array::default_stream()); x.check_status(status,res_handle)
   }
 }
+
+
+
+// ===== Leaky ReLU =====
+
+pub fn leaky_relu(x: &Array, alpha:f32) -> Result<Array>{
+    let condition = x.greater_than_scalar(0.0)?;
+   let scaled_x = x.multiply_scalar(alpha)?;
+    condition.where_op(x, &scaled_x)
+}
+
+// ===== ELU=====
+
+pub fn elu(x: &Array, alpha: f32) -> Result<Array> {
+    let condition = x.greater_than_scalar(0.0)?;
+    let exp_x = x.exp()?;
+    let scaled_exp_x = exp_x.multiply_scalar(alpha)?.subtract_scalar(alpha)?;
+    condition.where_op(x, &scaled_exp_x)
+}
