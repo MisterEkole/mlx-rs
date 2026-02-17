@@ -149,10 +149,10 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 ### Recurrent Layers
 | Feature | Status | Notes |
 |---------|--------|-------|
-| RNN | 📋 | Planned |
-| LSTM | 📋 | Planned |
-| GRU | 📋 | Planned |
-| Bidirectional wrappers | 📋 | Planned |
+| RNN | ✅ | |
+| LSTM | ✅ | |
+| GRU | ✅ | |
+| Bidirectional wrappers | ✅ ||
 
 ### Pooling Layers
 | Feature | Status | Notes |
