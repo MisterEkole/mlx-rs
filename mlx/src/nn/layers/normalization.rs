@@ -2,6 +2,8 @@
 
 use crate::{Array, Result, Dtype};
 use crate::nn::Module;
+use mlx_derive::ModuleParams;
+#[derive(ModuleParams)]
 pub struct LayerNorm {
     pub weight: Array,
     pub bias: Array,
@@ -28,11 +30,6 @@ impl Module for LayerNorm {
         layer_norm(x, &self.weight, &self.bias, self.eps)
     }
     
-    fn parameters(&self) -> Vec<&Array> {
-        vec![&self.weight, &self.bias]
-    }
-    
-    fn train(&mut self, _training: bool) {}
 }
 
 pub fn layer_norm(x: &Array, weight: &Array, bias: &Array, eps: f32) -> Result<Array> {
@@ -47,6 +44,8 @@ pub fn layer_norm(x: &Array, weight: &Array, bias: &Array, eps: f32) -> Result<A
 }
 
 /// RMS Normalization.
+
+#[derive(ModuleParams)]
 pub struct RMSNorm {
     pub weight: Array,
     pub eps: f32,
@@ -69,9 +68,4 @@ impl Module for RMSNorm {
         normalized.multiply(&self.weight)
     }
     
-    fn parameters(&self) -> Vec<&Array> {
-        vec![&self.weight]
-    }
-    
-    fn train(&mut self, _training: bool) {}
 }

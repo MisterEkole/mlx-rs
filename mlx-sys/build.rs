@@ -2,16 +2,15 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-   
-    let mlx_c_path = env::var("MLX_C_PATH").expect(
-        "\n\n[mlx-rs error]: MLX_C_PATH is not set. \
-        \nPlease build mlx-c first and set the variable: \
-        \nexport MLX_C_PATH=/path/to/your/mlx-c\n"
-    );
+    let mlx_c_path = env::var("MLX_C_PATH").unwrap_or_else(|_| {
+        let fallback = "/Users/ekole/Dev/mlx-c";
+        
+        println!("cargo:warning=MLX_C_PATH is not set. Falling back to: {}", fallback);
+        fallback.to_string()
+    });
     
     let manifest_dir = PathBuf::from(mlx_c_path);
 
-  
     // Link the C-Wrapper (mlxc)
     println!("cargo:rustc-link-search=native={}/build", manifest_dir.display());
     println!("cargo:rustc-link-lib=static=mlxc");
@@ -36,8 +35,7 @@ fn main() {
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("Unable to generate bindings");
-
-    // Write to the tester's specific target directory automatically
+    
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
         .write_to_file(out_path.join("bindings.rs"))

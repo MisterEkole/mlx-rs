@@ -2,7 +2,7 @@
 //! Pooling layers supporting overlapping windows via as_strided.
 
 use crate::{Array, Result};
-use crate::nn::Module;
+use crate::nn::{Module, ModuleParams};
 
 /// 2D Max Pooling layer.
 pub struct MaxPool2d {
@@ -15,6 +15,7 @@ impl MaxPool2d {
         Self { kernel_size, stride }
     }
 }
+impl ModuleParams for MaxPool2d {}
 
 impl Module for MaxPool2d {
     fn forward(&self, x: &Array) -> Result<Array> {
@@ -51,9 +52,6 @@ impl Module for MaxPool2d {
         // Reduce across the Kh and Kw dimensions (axes 3 and 4)
         windows.max_axes(&[3, 4], false)
     }
-
-    fn parameters(&self) -> Vec<&Array> { vec![] }
-    fn train(&mut self, _: bool) {}
 }
 
 /// 2D Average Pooling layer.
@@ -67,6 +65,7 @@ impl AvgPool2d {
         Self { kernel_size, stride }
     }
 }
+impl ModuleParams for AvgPool2d {}
 
 impl Module for AvgPool2d {
     fn forward(&self, x: &Array) -> Result<Array> {
@@ -97,6 +96,5 @@ impl Module for AvgPool2d {
         windows.mean_axes(&[3, 4], false)
     }
 
-    fn parameters(&self) -> Vec<&Array> { vec![] }
-    fn train(&mut self, _: bool) {}
+
 }

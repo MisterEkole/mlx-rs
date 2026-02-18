@@ -2,6 +2,7 @@
 
 use crate::{Array, Result, Dtype};
 use crate::nn::Module;
+use mlx_derive::ModuleParams;
 
 // --- Helper for Weight Initialization ---
 fn kaiming_uniform(shape: &[usize], fan_in: usize, key: &Array) -> Result<Array> {
@@ -13,8 +14,11 @@ fn kaiming_uniform(shape: &[usize], fan_in: usize, key: &Array) -> Result<Array>
 
 macro_rules! define_conv {
     ($name:ident, $dim:expr, $op:ident) => {
+        #[derive(ModuleParams)]
         pub struct $name {
+            #[param]
             pub weight: Array,
+            #[param(optional)]
             pub bias: Option<Array>,
             pub stride: [i32; $dim],
             pub padding: [i32; $dim],
@@ -65,38 +69,7 @@ macro_rules! define_conv {
                 Ok(out)
             }
 
-            fn parameters(&self) -> Vec<&Array> {
-                let mut p = vec![&self.weight];
-                if let Some(ref b) = self.bias {
-                    p.push(b);
-                }
-                p
-            }
-
-            fn parameters_mut(&mut self) -> Vec<&mut Array> {
-                let mut p = vec![&mut self.weight];
-                if let Some(ref mut b) = self.bias {
-                    p.push(b);
-                }   
-                p
-            }
-
-            /// Crucial for training: Updates the internal array handles with new weights from the optimizer.
-            fn update_parameters(&mut self, new_params: &[Array]) {
-                if !new_params.is_empty() {
-                    // 1. Update the weight handle (mandatory)
-                    self.weight = new_params[0].clone();
-                    
-                    // 2. Update the bias handle (if it exists)
-                    if self.bias.is_some() && new_params.len() > 1 {
-                        self.bias = Some(new_params[1].clone());
-                    }
-                }
-            }
             
-            fn train(&mut self, _training: bool) {
-                // Convolutional layers behave the same during training and inference
-            }
         }
     };
 }
@@ -111,8 +84,11 @@ define_conv!(Conv3d, 3, conv3d);
 
 macro_rules! define_conv_transpose {
     ($name:ident, $dim:expr, $op:ident) => {
+        #[derive(ModuleParams)]
         pub struct $name {
+            #[param]
             pub weight: Array,
+            #[param(optional)]
             pub bias: Option<Array>,
             pub stride: [i32; $dim],
             pub padding: [i32; $dim],
@@ -169,36 +145,7 @@ macro_rules! define_conv_transpose {
                 Ok(out)
             }
 
-            fn parameters(&self) -> Vec<&Array> {
-                let mut p = vec![&self.weight];
-                if let Some(ref b) = self.bias { p.push(b); }
-                p
-            }
-                 fn parameters_mut(&mut self) -> Vec<&mut Array> {
-                let mut p = vec![&mut self.weight];
-                if let Some(ref mut b) = self.bias {
-                    p.push(b);
-                }   
-                p
-            }
-
-
-            /// Synchronizes the C++ handles with the new weights from the optimizer
-            fn update_parameters(&mut self, new_params: &[Array]) {
-                if !new_params.is_empty() {
-                    // Update weight handle
-                    self.weight = new_params[0].clone();
-                    
-                    // Update bias handle if it exists in the parameter list
-                    if self.bias.is_some() && new_params.len() > 1 {
-                        self.bias = Some(new_params[1].clone());
-                    }
-                }
-            }
-
-            fn train(&mut self, _training: bool) {
-                // No-op: Transposed convs are stationary during inference
-            }
+            
         }
     };
 }

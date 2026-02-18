@@ -1,7 +1,7 @@
 //! Sequential container for stacking neural network layers.
 
-use crate::{Array, Result};
-use crate::nn::Module;
+use crate::{Array,Result};
+use crate::nn::{Module,ModuleParams};
 
 /// A container that wraps a sequence of modules and applies them one after another.
 pub struct Sequential {
@@ -21,47 +21,41 @@ impl Sequential {
     }
 }
 
+/// Manual ModuleParam -Vec<Box<dyn Module>> pattern
+
+impl ModuleParams for Sequential {
+    fn parameters(&self) -> Vec<&Array> {
+        self.layers.iter().flat_map(|layer| layer.parameters()).collect()
+    }
+
+    fn parameters_mut(&mut self) -> Vec<&mut Array> {
+        self.layers.iter_mut().flat_map(|layer| layer.parameters_mut()).collect()
+    }
+
+    fn update_parameters(&mut self, new_params: &[Array]) {
+        let mut offset = 0;
+        for layer in &mut self.layers {
+            let n = layer.parameters().len();
+            if offset + n <= new_params.len() {
+                layer.update_parameters(&new_params[offset..offset + n]);
+                offset += n;
+            }
+        }
+    }
+
+    fn train(&mut self, training: bool) {
+        for layer in &mut self.layers {
+            layer.train(training);
+        }
+    }
+}
+
 impl Module for Sequential {
-    /// Pass the input through each layer in the sequence.
     fn forward(&self, x: &Array) -> Result<Array> {
         let mut out = x.clone();
         for layer in &self.layers {
             out = layer.forward(&out)?;
         }
         Ok(out)
-    }
-
-    /// Collects all parameters from all constituent layers.
-    fn parameters(&self) -> Vec<&Array> {
-        self.layers
-            .iter()
-            .flat_map(|layer| layer.parameters())
-            .collect()
-    }
-
-    /// Provides mutable access to the weights for the Optimizer
-  fn parameters_mut(&mut self) -> Vec<&mut Array> {
-    self.layers
-        .iter_mut()
-        .flat_map(|layer| layer.parameters_mut())
-        .collect()
-    }
-
-    /// Sets the training mode for all constituent layers.
-    fn train(&mut self, training: bool) {
-        for layer in &mut self.layers {
-            layer.train(training);
-        }
-    }
-
-
-    fn update_parameters(&mut self, new_params: &[Array]) {
-        let mut i = 0;
-        for layer in &mut self.layers {
-            let n = layer.parameters().len();
-            // Give the layer the slice of params it owns
-            layer.update_parameters(&new_params[i..i+n]);
-            i += n;
-        }
     }
 }

@@ -1,6 +1,6 @@
 //! Flattening layers to bridge spatial and linear layers.
 use crate::{Array, Result};
-use crate::nn::Module;
+use crate::nn::{Module, ModuleParams};
 
 pub struct Flatten {
     pub start_axis: i32,
@@ -16,6 +16,7 @@ impl Flatten {
         }
     }
 }
+impl ModuleParams for Flatten {}
 
 impl Module for Flatten {
     fn forward(&self, x: &Array) -> Result<Array> {
@@ -34,16 +35,5 @@ impl Module for Flatten {
         x.reshape(&[batch_size, flattened_dim as i32])
     }
 
-    fn parameters(&self) -> Vec<&Array> {
-        // Flatten has no learnable parameters
-        vec![]
-    }
-
-    // This matches the update we made to the Module trait earlier
-    fn update_parameters(&mut self, _new_params: &[Array]) {
-        // No-op: Flatten has no weights to update
-    }
-
-    fn train(&mut self, _training: bool) {}
 }
 

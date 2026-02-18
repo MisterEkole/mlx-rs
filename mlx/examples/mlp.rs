@@ -1,6 +1,6 @@
 /// mlx/examples/mlp.rs
 use mlx::{Array, Dtype, Result, transforms, Device, DeviceType};
-use mlx::nn::{Sequential, Linear, ReLU, cross_entropy, Adam, Optimizer, Module};
+use mlx::nn::{Sequential, Linear, ReLU, cross_entropy, Adam, Optimizer, Module, ModuleParams};
 use std::cell::RefCell;
 
 fn main() -> Result<()> {
