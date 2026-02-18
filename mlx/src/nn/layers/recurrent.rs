@@ -1,6 +1,7 @@
 use crate::{Array, Result, Dtype};
 use crate::nn::Module;
 use crate::nn::layers::activations::{sigmoid, tanh};
+use mlx_derive::ModuleParams;
 
 // --- Helper for Weight Initialization ---
 // Uniform initialization bounded by 1 / sqrt(hidden_size)
@@ -13,10 +14,15 @@ fn rnn_uniform(shape: &[usize], hidden_size: usize, key: &Array) -> Result<Array
 // LSTM Layer
 // =========================================================================
 
+#[derive(ModuleParams)]
 pub struct LSTM {
+    #[param]
     pub weight_ih: Array,
+    #[param]
     pub weight_hh: Array,
+    #[param(optional)]
     pub bias_ih: Option<Array>,
+    #[param(optional)]
     pub bias_hh: Option<Array>,
 }
 
@@ -96,44 +102,20 @@ impl Module for LSTM {
         Ok(h)
     }
 
-    fn parameters(&self) -> Vec<&Array> {
-        let mut p = vec![&self.weight_ih, &self.weight_hh];
-        if let Some(ref b) = self.bias_ih { p.push(b); }
-        if let Some(ref b) = self.bias_hh { p.push(b); }
-        p
-    }
-
-    fn parameters_mut(&mut self) -> Vec<&mut Array> {
-        let mut p = vec![&mut self.weight_ih, &mut self.weight_hh];
-        if let Some(ref mut b) = self.bias_ih { p.push(b); }
-        if let Some(ref mut b) = self.bias_hh { p.push(b); }
-        p
-    }
-
-    fn update_parameters(&mut self, new_params: &[Array]) {
-        if new_params.len() >= 2 {
-            self.weight_ih = new_params[0].clone();
-            self.weight_hh = new_params[1].clone();
-            let mut offset = 2;
-            if self.bias_ih.is_some() && new_params.len() > offset {
-                self.bias_ih = Some(new_params[offset].clone());
-                offset += 1;
-            }
-            if self.bias_hh.is_some() && new_params.len() > offset {
-                self.bias_hh = Some(new_params[offset].clone());
-            }
-        }
-    }
 }
 
 // =========================================================================
 // GRU Layer
 // =========================================================================
-
+#[derive(ModuleParams)]
 pub struct GRU {
+    #[param]
     pub weight_ih: Array,
+    #[param]
     pub weight_hh: Array,
+    #[param(optional)]
     pub bias_ih: Option<Array>,
+    #[param(optional)]
     pub bias_hh: Option<Array>,
 }
 
@@ -206,44 +188,21 @@ impl Module for GRU {
         Ok(h)
     }
 
-    fn parameters(&self) -> Vec<&Array> {
-        let mut p = vec![&self.weight_ih, &self.weight_hh];
-        if let Some(ref b) = self.bias_ih { p.push(b); }
-        if let Some(ref b) = self.bias_hh { p.push(b); }
-        p
-    }
-
-    fn parameters_mut(&mut self) -> Vec<&mut Array> {
-        let mut p = vec![&mut self.weight_ih, &mut self.weight_hh];
-        if let Some(ref mut b) = self.bias_ih { p.push(b); }
-        if let Some(ref mut b) = self.bias_hh { p.push(b); }
-        p
-    }
-
-    fn update_parameters(&mut self, new_params: &[Array]) {
-        if new_params.len() >= 2 {
-            self.weight_ih = new_params[0].clone();
-            self.weight_hh = new_params[1].clone();
-            let mut offset = 2;
-            if self.bias_ih.is_some() && new_params.len() > offset {
-                self.bias_ih = Some(new_params[offset].clone());
-                offset += 1;
-            }
-            if self.bias_hh.is_some() && new_params.len() > offset {
-                self.bias_hh = Some(new_params[offset].clone());
-            }
-        }
-    }
+   
 }
 
 // =========================================================================
 // Vanilla RNN Layer
 // =========================================================================
-
+#[derive(ModuleParams)]
 pub struct RNN {
+    #[param]
     pub weight_ih: Array,
+    #[param]
     pub weight_hh: Array,
+    #[param(optional)]
     pub bias_ih: Option<Array>,
+    #[param(optional)]
     pub bias_hh: Option<Array>,
 }
 
@@ -293,32 +252,4 @@ impl Module for RNN {
         Ok(h)
     }
 
-    fn parameters(&self) -> Vec<&Array> {
-        let mut p = vec![&self.weight_ih, &self.weight_hh];
-        if let Some(ref b) = self.bias_ih { p.push(b); }
-        if let Some(ref b) = self.bias_hh { p.push(b); }
-        p
-    }
-
-    fn parameters_mut(&mut self) -> Vec<&mut Array> {
-        let mut p = vec![&mut self.weight_ih, &mut self.weight_hh];
-        if let Some(ref mut b) = self.bias_ih { p.push(b); }
-        if let Some(ref mut b) = self.bias_hh { p.push(b); }
-        p
-    }
-
-    fn update_parameters(&mut self, new_params: &[Array]) {
-        if new_params.len() >= 2 {
-            self.weight_ih = new_params[0].clone();
-            self.weight_hh = new_params[1].clone();
-            let mut offset = 2;
-            if self.bias_ih.is_some() && new_params.len() > offset {
-                self.bias_ih = Some(new_params[offset].clone());
-                offset += 1;
-            }
-            if self.bias_hh.is_some() && new_params.len() > offset {
-                self.bias_hh = Some(new_params[offset].clone());
-            }
-        }
-    }
 }

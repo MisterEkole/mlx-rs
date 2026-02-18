@@ -138,7 +138,17 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 name = "mlx"
 version = "0.1.0"
 dependencies = [
+ "mlx-derive",
  "mlx-sys",
+]
+
+[[package]]
+name = "mlx-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

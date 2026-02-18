@@ -1,8 +1,11 @@
 //! Embedding layers for discrete inputs.
 
-use crate::{Array, Result, Dtype};
-use crate::nn::Module;
+use mlx_derive::ModuleParams;
 
+use crate::{Array, Result, Dtype};
+use crate::nn::{Module};
+
+#[derive(ModuleParams)]
 pub struct Embedding {
     pub weight: Array,
     pub num_embeddings: usize,
@@ -36,18 +39,12 @@ impl Embedding {
     }
 }
 
+
+
 impl Module for Embedding {
     fn forward(&self, x: &Array) -> Result<Array> {
-        // x: [Batch, Sequence_Length] or any shape of indices
-        // result: [..., embedding_dim]
-        
-        // take(indices, axis) is the MLX equivalent of PyTorch's F.embedding
         self.weight.take(x, 0)
     }
     
-    fn parameters(&self) -> Vec<&Array> {
-        vec![&self.weight]
-    }
-
-    fn train(&mut self, _training: bool) {}
+   
 }

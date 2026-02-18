@@ -1,6 +1,7 @@
 use mlx::{Array, Dtype, Result, transforms, Device, DeviceType};
-use mlx::nn::{Sequential, Linear, ReLU, Conv2d, Flatten, cross_entropy, Adam, Optimizer, Module};
+use mlx::nn::{Sequential, Linear, ReLU, Conv2d, Flatten, cross_entropy, Adam, Optimizer, Module, ModuleParams};
 use std::cell::RefCell;
+
 
 fn main() -> Result<()> {
 

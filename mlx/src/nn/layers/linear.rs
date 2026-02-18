@@ -1,15 +1,20 @@
 // mlx/src/nn/layers/linear.rs
 
-// mlx/src/nn/layers/linear.rs
+// The derive macro auto generates: parameters(), parameters_mut(), update_parameters(), train() based on field annotations.
+
 
 use crate::{Array, Result, Dtype};
 use crate::nn::Module;
+use mlx_derive::ModuleParams;
 
 /// A linear (fully connected) layer.
 /// 
 /// Applies a linear transformation to the incoming data: y = xA^T + b
+#[derive(ModuleParams)]
 pub struct Linear {
+    #[param]
     pub weight: Array,
+    #[param(optional)]
     pub bias: Option<Array>,
     pub in_features: usize,
     pub out_features: usize,
@@ -95,37 +100,5 @@ impl Module for Linear {
         Ok(out)
     }
  
-    fn parameters(&self) -> Vec<&Array> {
-        let mut params = vec![&self.weight];
-        if let Some(ref b) = self.bias {
-            params.push(b);
-        }
-        params
-    }
-
-    /// Provides mutable access to the weights for the Optimizer
-    fn parameters_mut(&mut self) -> Vec<&mut Array> {
-        let mut params = vec![&mut self.weight];
-        if let Some(ref mut b) = self.bias {
-            params.push(b);
-        }
-        params
-    }
-   
-    fn train(&mut self, _training: bool) {
     
-    }
-
-    fn update_parameters(&mut self, new_params: &[Array]) {
-        if self.bias.is_some() {
-            if new_params.len() >= 2 {
-                self.weight = new_params[0].clone();
-                self.bias = Some(new_params[1].clone());
-            }
-        } else {
-            if !new_params.is_empty() {
-                self.weight = new_params[0].clone();
-            }
-        }
-    }
 }

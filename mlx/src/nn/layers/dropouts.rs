@@ -1,6 +1,6 @@
 //! Dropout regularization layers.
 use crate::{Array, Result, Dtype};
-use crate::nn::Module;
+use crate::nn::{Module, ModuleParams};
 use std::cell::RefCell;
 
 pub struct Dropout {
@@ -26,6 +26,12 @@ impl Dropout {
     }
 }
 
+impl ModuleParams for Dropout {
+    fn train(&mut self, training: bool) {
+        self.training = training;
+    }
+}
+
 impl Module for Dropout {
     fn forward(&self, x: &Array) -> Result<Array> {
         if !self.training || self.p == 0.0 {
@@ -48,11 +54,4 @@ impl Module for Dropout {
         x.multiply(&mask)?.multiply_scalar(scale)
     }
     
-    fn parameters(&self) -> Vec<&Array> {
-        vec![] 
-    }
-    
-    fn train(&mut self, training: bool) {
-        self.training = training;
-    }
 }
