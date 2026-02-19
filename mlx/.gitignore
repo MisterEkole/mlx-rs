@@ -1,0 +1,3 @@
+*.npz
+*.safetensors
+.DS_Store
