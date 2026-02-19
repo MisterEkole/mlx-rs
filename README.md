@@ -33,18 +33,15 @@ This repository contains two crates:
 
 ### Step 1: Build the MLX-C Engine
 
-`mlx-rs` relies on the C-wrapper to interface with the C++ core. You must build this locally first:
+`mlx-rs` relies on the C-wrapper to interface with the C++ core. 
+**Why a fork?** The official `mlx-c` passes `mlx_optional_int` structs by value, 
+which causes an [ABI mismatch](docs/Rust_C_ABI_Mismatch_Quantization.md) when called 
+from Rust on ARM64. Our fork adds thin C wrapper functions that accept plain `int` parameters. You must build this locally first:
 
 ```bash
 # Clone the patched mlx-c (includes quantize wrapper functions)
 git clone https://github.com/MisterEkole/mlx-c.git
 cd mlx-c
-
-
-**Why a fork?** The official mlx-c passes `mlx_optional_int` structs by value,
-> which causes an [ABI mismatch](docs/Rust_C_ABI_Mismatch_Quantization.md) when called
-> from Rust on ARM64. Our fork adds thin C wrapper functions that accept plain
-> `int` parameters.
 
 
 # Build with CMake
