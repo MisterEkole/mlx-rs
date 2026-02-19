@@ -9,6 +9,8 @@ pub mod device;
 pub mod operations; 
 pub mod nn;
 pub mod transforms;
+pub mod quantization;
+pub mod io;
 
 
 // 2. Re-export items so users can just type `mlx::Array` instead of `mlx::array::Array`
@@ -17,7 +19,8 @@ pub use dtype::Dtype;
 pub use device::{Device, DeviceType};
 pub use operations::*;
 pub use transforms::*;
-
+pub use quantization::*;
+pub use io::*;
 
 // 3. Import the C-bindings here once, so other files can use them via `crate::sys`
 // (Assuming your bindings crate is named mlx_sys)
