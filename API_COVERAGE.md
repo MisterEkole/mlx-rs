@@ -135,16 +135,16 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 | Linear (Dense) | ✅ | Fully featured |
 | Conv1d | ✅ | |
 | Conv2d | ✅ | |
-| Conv3d | 📋 | Planned |
-| ConvTranspose1d | 📋 | Planned |
-| ConvTranspose2d | 📋 | Planned |
+| Conv3d | 📋 | |
+| ConvTranspose1d | ✅  |  |
+| ConvTranspose2d | ✅  |  |
 | Embedding | ✅ | |
 | Dropout | ✅ | |
-| BatchNorm | 📋 | Planned|
+| BatchNorm | 📋 | |
 | LayerNorm | ✅| |
-| GroupNorm | 📋 | Planned |
-| InstanceNorm | 📋 | Planned |
-| RMSNorm | ✅ | Planned |
+| GroupNorm | 📋 | |
+| InstanceNorm | 📋 | |
+| RMSNorm | ✅ | |
 
 ### Recurrent Layers
 | Feature | Status | Notes |
@@ -173,8 +173,8 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 | Sigmoid | ✅ | |
 | Tanh | ✅ | |
 | Softmax | ✅ | |
-| LogSoftmax | ✅ |Planned |
-| LeakyReLU | 📋| Planned|
+| LogSoftmax | ✅ ||
+| LeakyReLU | ✅ | |
 | ELU | 📋|Planned |
 | PReLU | 📋 | Planned |
 | Mish | 📋 | Planned |
@@ -182,31 +182,30 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 ### Attention Mechanisms
 | Feature | Status | Notes |
 |---------|--------|-------|
-| MultiHeadAttention | 📋 | Planned|
-| Scaled Dot-Product Attention | 📋| Planned|
-| Cross Attention | 📋| |
+| MultiHeadAttention | ✅ | Planned|
+| Scaled Dot-Product Attention |✅ | Planned|
+| Cross Attention | ✅ | |
 | Rotary Position Embeddings (RoPE) | 📋 | Planned |
-| Alibi | 📋 | Planned |
 | Flash Attention | 📋 | Planned |
 
 ### Transformer Components
 | Feature | Status | Notes |
 |---------|--------|-------|
-| TransformerEncoder | 📋 | |
-| TransformerDecoder | 📋| |
-| TransformerEncoderLayer | 📋| |
-| TransformerDecoderLayer | 📋 | |
+| TransformerEncoder | ✅ | |
+| TransformerDecoder | ✅| |
+| TransformerEncoderLayer | ✅| |
+| TransformerDecoderLayer | ✅ | |
 
 ### Loss Functions
 | Feature | Status | Notes |
 |---------|--------|-------|
 | MSE Loss | ✅ | |
-| Cross Entropy Loss | ✅ |Planned|
-| Binary Cross Entropy | 📋| Planned|
-| L1 Loss | 📋| Planned|
-| Smooth L1 Loss | 📋 | Planned |
-| KL Divergence | 📋 | Planned |
-| Cosine Embedding Loss | 📋 | Planned |
+| Cross Entropy Loss | ✅ ||
+| Binary Cross Entropy | ✅| |
+| L1 Loss |✅| |
+| Smooth L1 Loss |✅| |
+| KL Divergence | ✅| |
+| Cosine Embedding Loss |✅| |
 
 ---
 
@@ -253,9 +252,9 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| vmap (Vectorization) | 📋 | Planned |
-| compile (JIT Compilation) | 📋 | Planned |
-| checkpoint (Gradient Checkpointing) | 📋 | Planned |
+| vmap (Vectorization) |  ✅  |  |
+| compile (JIT Compilation) |  ✅ | |
+| checkpoint (Gradient Checkpointing) |  ✅  | |
 
 ---
 
@@ -279,16 +278,16 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 ### Serialization Formats
 | Feature | Status | Notes |
 |---------|--------|-------|
-| NumPy format (save/load) | 🚧 | In progress |
-| Safetensors format | 🚧 | In progress |
+| NumPy format (save/load) |  ✅  | |
+| Safetensors format |  ✅ | |
 | GGUF format | 📋 | Planned (llama.cpp compat) |
 | Pickle format | 📋 | Planned |
 
 ### Model Management
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Save model weights | 🚧 | In progress |
-| Load model weights | 🚧 | In progress |
+| Save model weights | ✅ | |
+| Load model weights |  ✅ |  |
 | Checkpoint management | 📋 | Planned |
 | Partial loading | 📋 | Planned |
 | Model sharding | 📋 | Planned |
@@ -299,14 +298,14 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| distributed.init | 📋 | Planned |
-| all_reduce | 📋 | Planned |
-| all_gather | 📋 | Planned |
-| all_sum | 📋 | Planned |
-| broadcast | 📋 | Planned |
-| Multi-GPU support | 📋 | Planned |
-| Data parallelism | 📋 | Planned |
-| Model parallelism | 📋 | Planned |
+| distributed.init |  ✅ |  |
+| all_reduce | ✅ | |
+| all_gather |  ✅ |  |
+| all_sum |  ✅ | |
+| broadcast | ✅ | |
+| Multi-GPU support | 📋 | |
+| Data parallelism | 📋 | |
+| Model parallelism | 📋 | |
 
 ---
 
@@ -328,7 +327,7 @@ This document tracks the implementation status of MLX features in mlx-rs. It's r
 |---------|--------|-------|
 | eval (Force evaluation) | ✅ | |
 | Device management (cpu/gpu) | ✅ | |
-| Memory pool management | 📋 | Planned |
+| Memory pool management | ✅ | Planned |
 | depends (Operation dependencies) | 📋 | Planned |
 | tree_map, tree_flatten | 📋 | Planned |
 | Profiling utilities | 📋 | Planned |
