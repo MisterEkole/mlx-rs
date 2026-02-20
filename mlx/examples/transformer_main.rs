@@ -7,9 +7,13 @@
 //   LayerNorm → Mean Pool → Linear Classifier
 //
 // Task: classify random token sequences into N classes (synthetic data).
+//
+// Schedule: Linear warmup (200 steps) → Cosine decay — the standard
+// recipe for transformer pretraining (Chinchilla, LLaMA, etc.).
 
 use mlx::{Array, Dtype, Result, transforms, Device, DeviceType};
 use mlx::nn::{Module, ModuleParams, Optimizer, Linear, cross_entropy, Adam};
+use mlx::nn::{LRScheduler, WarmupCosineSchedule};
 use mlx::nn::layers::normalization::LayerNorm;
 use mlx::nn::layers::embedding::Embedding;
 use mlx::nn::transformers::TransformerEncoder;
@@ -126,7 +130,8 @@ fn main() -> Result<()> {
     let n_layers: usize = 2;
     let n_classes: usize = 5;
     let batch_size: usize = 16;
-    let lr: f32 = 1e-3;
+    let peak_lr: f32 = 1e-3;
+    let warmup_steps: u32 = 200;
     let steps: usize = 5000;
 
     let key = Array::key(42)?;
@@ -145,7 +150,24 @@ fn main() -> Result<()> {
         vocab_size, d_model, n_layers, d_model, n_heads, d_ff, d_model, n_classes
     );
 
-    let mut optimizer = Adam::new(lr, &model.borrow().parameters_owned())?;
+    // ── Optimizer + Scheduler ─────────────────────────────────────────────
+    //
+    // WarmupCosineSchedule: linear ramp 0 → peak_lr over `warmup_steps`,
+    // then cosine anneal peak_lr → 0 over the remaining steps.
+  
+
+    let mut optimizer = Adam::new(peak_lr, &model.borrow().parameters_owned())?;
+    let mut scheduler = WarmupCosineSchedule::new(
+        peak_lr,
+        warmup_steps,
+        steps as u32,
+        0.0, 
+    );
+
+    println!(
+        "Schedule: WarmupCosine(peak={}, warmup={}, total={}, eta_min=0)",
+        peak_lr, warmup_steps, steps
+    );
 
     // ── Synthetic Data ────────────────────────────────────────────────────
 
@@ -187,13 +209,19 @@ fn main() -> Result<()> {
 
         model.borrow_mut().update_parameters(&params);
 
+        // Advance the scheduler and update the optimizer's learning rate
+        optimizer.lr = scheduler.step();
+
         let mut to_eval = params.clone();
         to_eval.push(loss.clone());
         Array::eval_all(&to_eval[..])?;
 
         if step % 50 == 0 {
             let loss_val: f32 = loss.item()?;
-            println!("Step {:>5}: Loss = {:.6}", step, loss_val);
+            println!(
+                "Step {:>5}: Loss = {:.6}  lr = {:.6}",
+                step, loss_val, scheduler.get_lr()
+            );
         }
     }
 

@@ -108,6 +108,24 @@ huggingface-cli download mistralai/Mistral-7B-v0.1 \
 
 # Generate text
 cargo run --example mistral -- ./mistral-7b "What is Rust?"
+
+
+## 📊 Benchmarks
+
+We compared the performance of **mlx-rs**, **MLX Python**, and **PyTorch MPS** across various machine learning workloads. Because all three frameworks dispatch to the same underlying Apple Metal kernels, the primary performance differences come from the execution model and framework overhead.
+
+[![Benchmark Results Overview](benchmarks/bench_results/img1.png)](https://claude.site/public/artifacts/8f2a2466-0c6c-4edd-a44a-8c12a2c935a0)
+![Benchmark Key Findings](benchmarks/bench_results/img2.png)
+
+### Key Findings
+
+* **MLX Python is the overall winner:** It is particularly dominant on training and inference—up to **4× faster** than mlx-rs on small MLP training and **2.6× faster** on CNN training. While Rust inherently has less overhead, MLX Python's `value_and_grad` and optimizer are likely batching operations much more efficiently into the compute graph before dispatching to Metal.
+* **mlx-rs suffers from FFI overhead in training loops:** The Rust→C FFI boundary adds per-operation latency that becomes highly visible on smaller models. However, on pure compute workloads (like large matrix multiplications and element-wise operations), all three frameworks are within **~5%** of each other since the heavy lifting is done by the exact same Metal kernels.
+* **PyTorch MPS has the best large matmul kernels:** PyTorch scales slightly better on massive matrices (roughly **6% faster** at 4096²). However, it falls behind on small-batch training, where its eager execution model adds significant overhead compared to MLX's lazy evaluation.
+
+### Future Optimizations
+
+The primary optimization opportunity for `mlx-rs` is reducing the number of FFI calls per training step. We are actively exploring exposing a fused `value_and_grad` + optimizer step directly at the C level to eliminate the Rust→C roundtrips during tight training loops.
 ```
 ## Development Status
 
