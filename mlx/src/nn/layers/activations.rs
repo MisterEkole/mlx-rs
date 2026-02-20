@@ -141,3 +141,11 @@ pub fn elu(x: &Array, alpha: f32) -> Result<Array> {
     let scaled_exp_x = exp_x.multiply_scalar(alpha)?.subtract_scalar(alpha)?;
     condition.where_op(x, &scaled_exp_x)
 }
+
+
+// ===== SILU =====
+
+pub fn silu(x: &Array) -> Result<Array> {  
+    let sig = sigmoid(x)?;
+    Array::multiply(x,&sig)
+ }
