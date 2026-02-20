@@ -311,6 +311,62 @@ impl Array {
     }
 }
 
+
+
+//============================================================================
+// Trigonometric Operations
+//============================================================================
+
+impl Array{
+    pub fn cos(&self) -> Result<Array> {
+        unsafe{
+            let mut res_handle = sys::mlx_array { ctx: ptr::null_mut() };
+            let status = sys::mlx_cos(&mut res_handle,self.handle,Self::default_stream());
+            self.check_status(status,res_handle)
+        }
+        }
+
+    pub fn sin(&self) -> Result<Array> {
+        unsafe{
+            let mut res_handle = sys::mlx_array { ctx: ptr::null_mut() };
+            let status = sys::mlx_sin(&mut res_handle,self.handle,Self::default_stream());
+            self.check_status(status,res_handle)
+        }
+        }
+}
+
+/// Negation Operation
+impl Array{
+    pub fn negative(&self) -> Result<Array> {
+        unsafe{
+            let mut res_handle = sys::mlx_array { ctx: ptr::null_mut() };
+            let status = sys::mlx_negative(&mut res_handle,self.handle,Self::default_stream());
+            self.check_status(status,res_handle)
+        }
+        }
+
+}
+
+/// Argmax/Argmin
+impl Array{
+    pub fn argmax_axis(&self,axis: i32,keepdims: bool) -> Result<Array>{
+    unsafe{
+        let mut res_handle = sys::mlx_array { ctx: ptr::null_mut() };
+        let status = sys::mlx_argmax_axis(&mut res_handle,self.handle,axis,keepdims, Self::default_stream());
+        self.check_status(status,res_handle)
+    }
+}
+    pub fn argmin_axis(&self,axis: i32,keepdims: bool) -> Result<Array>{
+    unsafe{
+        let mut res_handle = sys::mlx_array { ctx: ptr::null_mut() };
+        let status = sys::mlx_argmin_axis(&mut res_handle, self.handle, axis, keepdims, Self::default_stream());
+        self.check_status(status, res_handle)
+    }
+ 
+    
+}
+}
+
 // =========================================================================
 // Trait Implementations (Memory & Formatting)
 // =========================================================================
