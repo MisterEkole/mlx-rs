@@ -87,7 +87,28 @@ cargo run --example basic_ops
 cargo run --example cnn
 ```
 
+### Step 4: Run Mistral-7B Inference
 
+Run a full Mistral-7B large language model locally on Apple Silicon:
+```bash
+# Install HuggingFace CLI (if not already)
+pip install huggingface-hub
+
+# Login to HuggingFace
+huggingface-cli login
+
+# Download Mistral-7B-v0.1 (~14GB)
+huggingface-cli download mistralai/Mistral-7B-v0.1 \
+    "model-00001-of-00003.safetensors" \
+    "model-00002-of-00003.safetensors" \
+    "model-00003-of-00003.safetensors" \
+    "tokenizer.json" \
+    "config.json" \
+    --local-dir ./mistral-7b
+
+# Generate text
+cargo run --example mistral -- ./mistral-7b "What is Rust?"
+```
 ## Development Status
 
 **⚠️ Early Development**: This project is in early development. APIs may change. Advanced features are being added regularly.
