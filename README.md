@@ -108,14 +108,15 @@ huggingface-cli download mistralai/Mistral-7B-v0.1 \
 
 # Generate text
 cargo run --example mistral -- ./mistral-7b "What is Rust?"
+```
 
 
 ## 📊 Benchmarks
 
 We compared the performance of **mlx-rs**, **MLX Python**, and **PyTorch MPS** across various machine learning workloads. Because all three frameworks dispatch to the same underlying Apple Metal kernels, the primary performance differences come from the execution model and framework overhead.
 
-[![Benchmark Results Overview](benchmarks/bench_results/img1.png)](https://claude.site/public/artifacts/8f2a2466-0c6c-4edd-a44a-8c12a2c935a0)
-![Benchmark Key Findings](benchmarks/bench_results/img2.png)
+[![Benchmark Results Overview](./benchmarks/bench_results/img1.png)](https://claude.site/public/artifacts/8f2a2466-0c6c-4edd-a44a-8c12a2c935a0)
+
 
 ### Key Findings
 
@@ -126,7 +127,7 @@ We compared the performance of **mlx-rs**, **MLX Python**, and **PyTorch MPS** a
 ### Future Optimizations
 
 The primary optimization opportunity for `mlx-rs` is reducing the number of FFI calls per training step. We are actively exploring exposing a fused `value_and_grad` + optimizer step directly at the C level to eliminate the Rust→C roundtrips during tight training loops.
-```
+
 ## Development Status
 
 **⚠️ Early Development**: This project is in early development. APIs may change. Advanced features are being added regularly.
