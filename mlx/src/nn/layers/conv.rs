@@ -3,6 +3,8 @@
 use crate::{Array, Result, Dtype};
 use crate::nn::Module;
 use mlx_derive::ModuleParams;
+use crate::TreeFlatten;
+
 
 // --- Helper for Weight Initialization ---
 fn kaiming_uniform(shape: &[usize], fan_in: usize, key: &Array) -> Result<Array> {
@@ -54,6 +56,22 @@ macro_rules! define_conv {
                 };
 
                 Ok(Self { weight, bias, stride, padding, dilation, groups })
+            }
+        }
+        impl TreeFlatten for $name {
+            fn flatten_state(&self) -> Vec<Array> {
+                let mut flat = vec![self.weight.clone()];
+                if let Some(b) = &self.bias {
+                    flat.push(b.clone());
+                }
+                flat
+            }
+
+            fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+                self.weight = flat_arrays.next().unwrap().clone();
+                if self.bias.is_some() {
+                    self.bias = Some(flat_arrays.next().unwrap().clone());
+                }
             }
         }
 
@@ -126,6 +144,22 @@ macro_rules! define_conv_transpose {
                 };
 
                 Ok(Self { weight, bias, stride, padding, dilation, output_padding, groups })
+            }
+        }
+        impl TreeFlatten for $name {
+            fn flatten_state(&self) -> Vec<Array> {
+                let mut flat = vec![self.weight.clone()];
+                if let Some(b) = &self.bias {
+                    flat.push(b.clone());
+                }
+                flat
+            }
+
+            fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+                self.weight = flat_arrays.next().unwrap().clone();
+                if self.bias.is_some() {
+                    self.bias = Some(flat_arrays.next().unwrap().clone());
+                }
             }
         }
 

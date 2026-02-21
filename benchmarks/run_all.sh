@@ -29,7 +29,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  [1/3] Running mlx-rs (Rust) benchmark..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-cargo run --release --example bench_mlx_rs 2>&1 | tee "$RESULTS_DIR/rust.txt"
+cargo run --release --example bench_mlx_rs2 2>&1 | tee "$RESULTS_DIR/rust.txt"
 echo ""
 
 # ── 2. Python MLX ─────────────────────────────────────────────────────────

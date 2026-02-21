@@ -1,6 +1,7 @@
 //! Flattening layers to bridge spatial and linear layers.
 use crate::{Array, Result};
 use crate::nn::{Module, ModuleParams};
+use crate::TreeFlatten;
 
 pub struct Flatten {
     pub start_axis: i32,
@@ -17,6 +18,15 @@ impl Flatten {
     }
 }
 impl ModuleParams for Flatten {}
+impl TreeFlatten for Flatten {
+    fn flatten_state(&self) -> Vec<Array> {
+        Vec::new()
+    }
+
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {
+       
+    }
+}
 
 impl Module for Flatten {
     fn forward(&self, x: &Array) -> Result<Array> {

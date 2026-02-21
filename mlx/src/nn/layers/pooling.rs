@@ -3,6 +3,8 @@
 
 use crate::{Array, Result};
 use crate::nn::{Module, ModuleParams};
+use crate::TreeFlatten;
+
 
 /// 2D Max Pooling layer.
 pub struct MaxPool2d {
@@ -16,6 +18,15 @@ impl MaxPool2d {
     }
 }
 impl ModuleParams for MaxPool2d {}
+impl TreeFlatten for MaxPool2d {
+    fn flatten_state(&self) -> Vec<Array> {
+        Vec::new()
+    }
+
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        
+    }
+}
 
 impl Module for MaxPool2d {
     fn forward(&self, x: &Array) -> Result<Array> {
@@ -66,6 +77,16 @@ impl AvgPool2d {
     }
 }
 impl ModuleParams for AvgPool2d {}
+impl TreeFlatten for AvgPool2d {
+    fn flatten_state(&self) -> Vec<Array> {
+        Vec::new()
+    }
+
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        
+    }
+}
+
 
 impl Module for AvgPool2d {
     fn forward(&self, x: &Array) -> Result<Array> {

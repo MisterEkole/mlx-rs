@@ -4,30 +4,30 @@
 ╚══════════════════════════════════════════════════╝
 
 ══ MATMUL THROUGHPUT ══
-  matmul 256x256                              14.86 ms total |    0.297 ms/iter  (50 iters)
-  matmul 512x512                              25.38 ms total |    0.508 ms/iter  (50 iters)
-  matmul 1024x1024                            49.56 ms total |    0.991 ms/iter  (50 iters)
-  matmul 2048x2048                           271.38 ms total |    5.428 ms/iter  (50 iters)
-  matmul 4096x4096                          2184.15 ms total |   43.683 ms/iter  (50 iters)
+  matmul 256x256                              14.92 ms total |    0.298 ms/iter  (50 iters)
+  matmul 512x512                              23.60 ms total |    0.472 ms/iter  (50 iters)
+  matmul 1024x1024                            52.16 ms total |    1.043 ms/iter  (50 iters)
+  matmul 2048x2048                           273.55 ms total |    5.471 ms/iter  (50 iters)
+  matmul 4096x4096                          2206.05 ms total |   44.121 ms/iter  (50 iters)
 
 ══ ELEMENT-WISE OPS (1M elements) ══
-  add                                         74.43 ms total |    0.372 ms/iter  (200 iters)
-  multiply                                    72.69 ms total |    0.363 ms/iter  (200 iters)
-  exp                                         58.74 ms total |    0.294 ms/iter  (200 iters)
-  sin                                         58.46 ms total |    0.292 ms/iter  (200 iters)
-  sqrt                                        72.34 ms total |    0.362 ms/iter  (200 iters)
+  add                                         73.59 ms total |    0.368 ms/iter  (200 iters)
+  multiply                                    70.78 ms total |    0.354 ms/iter  (200 iters)
+  exp                                         59.01 ms total |    0.295 ms/iter  (200 iters)
+  sin                                         59.10 ms total |    0.295 ms/iter  (200 iters)
+  sqrt                                        73.05 ms total |    0.365 ms/iter  (200 iters)
 
 ══ MLP TRAINING STEP ══
-  MLP fwd+bwd+update B=32 [128->256->256->10]    52.67 ms total |    0.527 ms/iter  (100 iters)
-  MLP fwd+bwd+update B=64 [512->1024->1024->100]   269.08 ms total |    2.691 ms/iter  (100 iters)
-  MLP fwd+bwd+update B=128 [784->2048->2048->10]   935.87 ms total |    9.359 ms/iter  (100 iters)
+  MLP fwd+bwd+update B=32 [128->256->256->10]    53.37 ms total |    0.534 ms/iter  (100 iters)
+  MLP fwd+bwd+update B=64 [512->1024->1024->100]   269.97 ms total |    2.700 ms/iter  (100 iters)
+  MLP fwd+bwd+update B=128 [784->2048->2048->10]   863.53 ms total |    8.635 ms/iter  (100 iters)
 
 ══ CNN TRAINING STEP (MNIST-like) ══
-  CNN fwd+bwd+update B=32 [28x28x1 -> 10]     80.26 ms total |    0.803 ms/iter  (100 iters)
+  CNN fwd+bwd+update B=32 [28x28x1 -> 10]     63.74 ms total |    0.637 ms/iter  (100 iters)
 
 ══ TRANSFORMER ENCODER FORWARD ══
-  Encoder fwd B=16 S=32 d=64 h=4 L=2          34.80 ms total |    0.696 ms/iter  (50 iters)
-  Encoder fwd B=16 S=64 d=128 h=4 L=4         97.08 ms total |    1.942 ms/iter  (50 iters)
-  Encoder fwd B=8 S=128 d=256 h=8 L=6        319.34 ms total |    6.387 ms/iter  (50 iters)
+  Encoder fwd B=16 S=32 d=64 h=4 L=2          33.08 ms total |    0.662 ms/iter  (50 iters)
+  Encoder fwd B=16 S=64 d=128 h=4 L=4         98.84 ms total |    1.977 ms/iter  (50 iters)
+  Encoder fwd B=8 S=128 d=256 h=8 L=6        318.40 ms total |    6.368 ms/iter  (50 iters)
 
 ══ DONE ══

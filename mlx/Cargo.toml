@@ -21,3 +21,7 @@ name = "mlp"
 [[example]]
 name = "bench_mlx_rs"
 path = "../benchmarks/bench_mlx.rs"
+
+[[example]]
+name = "bench_mlx_rs2"
+path = "../benchmarks/bench_mlx2.rs"

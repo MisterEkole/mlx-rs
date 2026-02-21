@@ -5,6 +5,7 @@ use crate::nn::transformers::multi_head_attention::MultiHeadAttention;
 use crate::nn::layers::normalization::LayerNorm;
 use crate::nn::layers::activations::relu;
 use crate::nn::layers::dropouts::Dropout;
+use crate::tree::TreeFlatten; // <-- 1. Import TreeFlatten
 use mlx_derive::ModuleParams;
 
 #[derive(ModuleParams)]
@@ -74,6 +75,49 @@ impl TransformerDecoderLayer {
     }
 }
 
+// 2. NEW: Implement TreeFlatten for TransformerDecoderLayer
+impl TreeFlatten for TransformerDecoderLayer {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        flat.extend(self.self_attn.flatten_state());
+        
+        if let Some(ca) = &self.cross_attn {
+            flat.extend(ca.flatten_state());
+        }
+        
+        flat.extend(self.norm1.flatten_state());
+        
+        if let Some(n2) = &self.norm2 {
+            flat.extend(n2.flatten_state());
+        }
+        
+        flat.extend(self.norm3.flatten_state());
+        flat.extend(self.ff_linear1.flatten_state());
+        flat.extend(self.ff_linear2.flatten_state());
+        flat.extend(self.dropout.flatten_state());
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.self_attn.unflatten_state(flat_arrays);
+        
+        if let Some(ca) = &mut self.cross_attn {
+            ca.unflatten_state(flat_arrays);
+        }
+        
+        self.norm1.unflatten_state(flat_arrays);
+        
+        if let Some(n2) = &mut self.norm2 {
+            n2.unflatten_state(flat_arrays);
+        }
+        
+        self.norm3.unflatten_state(flat_arrays);
+        self.ff_linear1.unflatten_state(flat_arrays);
+        self.ff_linear2.unflatten_state(flat_arrays);
+        self.dropout.unflatten_state(flat_arrays);
+    }
+}
+
 impl Module for TransformerDecoderLayer {
     fn forward(&self, input: &Array) -> Result<Array> {
         self.forward_full(input, None, None, None)
@@ -112,6 +156,23 @@ impl TransformerDecoder {
             out = layer.forward_full(&out, enc_output, self_attn_mask, cross_attn_mask)?;
         }
         Ok(out)
+    }
+}
+
+// 3. NEW: Implement TreeFlatten for the full Decoder stack
+impl TreeFlatten for TransformerDecoder {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        for layer in &self.layers {
+            flat.extend(layer.flatten_state());
+        }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        for layer in &mut self.layers {
+            layer.unflatten_state(flat_arrays);
+        }
     }
 }
 

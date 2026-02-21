@@ -3,6 +3,10 @@
 use crate::{Array, Result, Dtype};
 use crate::nn::Module;
 use mlx_derive::ModuleParams;
+use crate::TreeFlatten;
+
+/// Layer Normalization.
+
 #[derive(ModuleParams)]
 pub struct LayerNorm {
     pub weight: Array,
@@ -22,6 +26,16 @@ impl LayerNorm {
             bias,
             eps,
         })
+    }
+}
+impl TreeFlatten for LayerNorm {
+    fn flatten_state(&self) -> Vec<Array> {
+        vec![self.weight.clone(), self.bias.clone()]
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.weight = flat_arrays.next().unwrap().clone();
+        self.bias = flat_arrays.next().unwrap().clone();
     }
 }
 
@@ -55,6 +69,16 @@ impl RMSNorm {
     pub fn new(dims: usize, eps: f32) -> Result<Self> {
         let weight = Array::full(&[dims as i32], 1.0, Dtype::Float32)?;
         Ok(RMSNorm { weight, eps })
+    }
+}
+
+impl TreeFlatten for RMSNorm {
+    fn flatten_state(&self) -> Vec<Array> {
+        vec![self.weight.clone()]
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.weight = flat_arrays.next().unwrap().clone();
     }
 }
 

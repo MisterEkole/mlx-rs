@@ -6,11 +6,32 @@
 use crate::{Array, Result, Dtype};
 use crate::nn::Module;
 use mlx_derive::ModuleParams;
+use crate::TreeFlatten;
 
 /// A linear (fully connected) layer.
 /// 
 /// Applies a linear transformation to the incoming data: y = xA^T + b
+
+
+impl TreeFlatten for Linear {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = vec![self.weight.clone()];
+        if let Some(bias) = &self.bias {
+            flat.push(bias.clone());
+        }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.weight = flat_arrays.next().unwrap().clone();
+        if self.bias.is_some() {
+            self.bias = Some(flat_arrays.next().unwrap().clone());
+        }
+    }
+}
 #[derive(ModuleParams)]
+
+
 pub struct Linear {
     #[param]
     pub weight: Array,

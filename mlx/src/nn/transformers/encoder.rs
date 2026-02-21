@@ -5,11 +5,11 @@ use crate::nn::transformers::multi_head_attention::MultiHeadAttention;
 use crate::nn::layers::normalization::LayerNorm;
 use crate::nn::layers::activations::relu;
 use crate::nn::layers::dropouts::Dropout;
+use crate::tree::TreeFlatten; // <-- 1. Import TreeFlatten
 use mlx_derive::ModuleParams;
 
-
 #[derive(ModuleParams)]
-    pub struct TransformerEncoderLayer {
+pub struct TransformerEncoderLayer {
     #[module]
     pub self_attn: MultiHeadAttention,
     #[module]
@@ -54,6 +54,30 @@ impl TransformerEncoderLayer {
         Ok(x.add(&self.dropout.forward(&ff_out)?)?)
     }
 }
+
+// 2. NEW: Implement TreeFlatten for TransformerEncoderLayer
+impl TreeFlatten for TransformerEncoderLayer {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        flat.extend(self.self_attn.flatten_state());
+        flat.extend(self.norm1.flatten_state());
+        flat.extend(self.norm2.flatten_state());
+        flat.extend(self.ff_linear1.flatten_state());
+        flat.extend(self.ff_linear2.flatten_state());
+        flat.extend(self.dropout.flatten_state());
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.self_attn.unflatten_state(flat_arrays);
+        self.norm1.unflatten_state(flat_arrays);
+        self.norm2.unflatten_state(flat_arrays);
+        self.ff_linear1.unflatten_state(flat_arrays);
+        self.ff_linear2.unflatten_state(flat_arrays);
+        self.dropout.unflatten_state(flat_arrays);
+    }
+}
+
 impl Module for TransformerEncoderLayer {
     fn forward(&self, input: &Array) -> Result<Array> {
         self.forward_with_mask(input, None)
@@ -61,7 +85,6 @@ impl Module for TransformerEncoderLayer {
 }
 
 /// Stacking N encoder layers to form the full Transformer Encoder.
-
 
 pub struct TransformerEncoder {
     pub layers: Vec<TransformerEncoderLayer>,
@@ -83,8 +106,23 @@ impl TransformerEncoder {
 }
 
 
-// Manual ModuleParams for Vec<T> pattern, since #[module] doesn't work directly on Vec<T> where T: Module.
+impl TreeFlatten for TransformerEncoder {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        for layer in &self.layers {
+            flat.extend(layer.flatten_state());
+        }
+        flat
+    }
 
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        for layer in &mut self.layers {
+            layer.unflatten_state(flat_arrays);
+        }
+    }
+}
+
+// Manual ModuleParams for Vec<T> pattern, since #[module] doesn't work directly on Vec<T> where T: Module.
 impl ModuleParams for TransformerEncoder {
     fn parameters(&self) -> Vec<&Array> {
         self.layers.iter().flat_map(|layer| layer.parameters()).collect()
@@ -111,7 +149,6 @@ impl ModuleParams for TransformerEncoder {
         }
     }
 }
-
 
 impl Module for TransformerEncoder {
     fn forward(&self, x: &Array) -> Result<Array> {

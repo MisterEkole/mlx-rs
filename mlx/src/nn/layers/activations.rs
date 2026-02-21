@@ -4,6 +4,7 @@
 
 use crate::{Array, Result};
 use crate::nn::{Module, ModuleParams};
+use crate::tree::TreeFlatten;
 
 // ===== ReLU =====
 
@@ -14,6 +15,10 @@ impl ReLU {
 }
 
 impl ModuleParams for ReLU {}
+impl TreeFlatten for ReLU {
+    fn flatten_state(&self) -> Vec<Array> { Vec::new() }
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {}
+}
 
 impl Module for ReLU {
     fn forward(&self, x: &Array) -> Result<Array> { relu(x) }
@@ -38,6 +43,11 @@ impl GELU {
 }
 
 impl ModuleParams for GELU {}
+impl TreeFlatten for GELU {
+    fn flatten_state(&self) -> Vec<Array> { Vec::new() }
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {}
+}
+
 
 impl Module for GELU {
     fn forward(&self, x: &Array) -> Result<Array> { gelu(x) }
@@ -75,6 +85,10 @@ impl Softmax {
 }
 
 impl ModuleParams for Softmax {}
+impl TreeFlatten for Softmax {
+    fn flatten_state(&self) -> Vec<Array> { Vec::new() }
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {}
+}
 
 impl Module for Softmax {
     fn forward(&self, x: &Array) -> Result<Array> { softmax(x, self.axis) }
@@ -99,12 +113,21 @@ pub fn softmax(x: &Array, axis: i32) -> Result<Array> {
 
 pub struct Sigmoid;
 impl ModuleParams for Sigmoid {}
+
+impl TreeFlatten for Sigmoid {
+    fn flatten_state(&self) -> Vec<Array> { Vec::new() }
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {}
+}
 impl Module for Sigmoid {
     fn forward(&self, x: &Array) -> Result<Array> { sigmoid(x) }
 }
 
 pub struct Tanh;
 impl ModuleParams for Tanh {}
+impl TreeFlatten for Tanh {
+    fn flatten_state(&self) -> Vec<Array> { Vec::new() }
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {}
+}
 impl Module for Tanh {
     fn forward(&self, x: &Array) -> Result<Array> { tanh(x) }
 }
