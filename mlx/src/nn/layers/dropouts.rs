@@ -2,6 +2,8 @@
 use crate::{Array, Result, Dtype};
 use crate::nn::{Module, ModuleParams};
 use std::cell::RefCell;
+use crate::TreeFlatten;
+
 
 pub struct Dropout {
     pub p: f32,
@@ -23,6 +25,19 @@ impl Dropout {
             training: true,
             key: RefCell::new(key),
         })
+    }
+}
+// --- NEW: TreeFlatten Implementation ---
+// We MUST flatten the PRNG key so the JIT compiler updates the random state
+// for every batch, instead of reusing the same dropout mask forever!
+impl TreeFlatten for Dropout {
+    fn flatten_state(&self) -> Vec<Array> {
+        vec![self.key.borrow().clone()]
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        // We have &mut self here, so we can safely replace the inner key
+        self.key.replace(flat_arrays.next().unwrap().clone());
     }
 }
 

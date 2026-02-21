@@ -12,7 +12,7 @@ pub mod transforms;
 pub mod quantization;
 pub mod io;
 pub mod distributed;
-
+pub mod tree;
 
 // 2. Re-export items so users can just type `mlx::Array` instead of `mlx::array::Array`
 pub use array::Array;
@@ -23,6 +23,7 @@ pub use transforms::*;
 pub use quantization::*;
 pub use io::*;
 pub use distributed::*;
+pub use tree::TreeFlatten;
 
 
 // 3. Import the C-bindings here once, so other files can use them via `crate::sys`

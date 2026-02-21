@@ -1,4 +1,5 @@
 use crate::{Array, Result};
+use crate::tree::TreeFlatten; 
 
 pub trait Optimizer {
     /// Update the parameters using the provided gradients.
@@ -19,6 +20,12 @@ impl SGD {
     pub fn new(learning_rate: f32) -> Self {
         Self { learning_rate }
     }
+}
+
+
+impl TreeFlatten for SGD {
+    fn flatten_state(&self) -> Vec<Array> { Vec::new() }
+    fn unflatten_state(&mut self, _flat_arrays: &mut std::slice::Iter<'_, Array>) {}
 }
 
 impl Optimizer for SGD {
@@ -53,6 +60,20 @@ impl SGDMomentum {
             momentum,
             velocity: std::cell::RefCell::new(v),
         })
+    }
+}
+
+
+impl TreeFlatten for SGDMomentum {
+    fn flatten_state(&self) -> Vec<Array> {
+        self.velocity.borrow().clone()
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        let mut velocities = self.velocity.borrow_mut();
+        for v in velocities.iter_mut() {
+            *v = flat_arrays.next().unwrap().clone();
+        }
     }
 }
 
@@ -108,6 +129,29 @@ impl Adam {
         })
     }
 
+}
+
+
+impl TreeFlatten for Adam {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        let ms = self.m.borrow();
+        let vs = self.v.borrow();
+        for i in 0..ms.len() {
+            flat.push(ms[i].clone());
+            flat.push(vs[i].clone());
+        }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        let mut ms = self.m.borrow_mut();
+        let mut vs = self.v.borrow_mut();
+        for i in 0..ms.len() {
+            ms[i] = flat_arrays.next().unwrap().clone();
+            vs[i] = flat_arrays.next().unwrap().clone();
+        }
+    }
 }
 
 impl Optimizer for Adam {
@@ -178,6 +222,29 @@ impl AdamW {
     }
 }
 
+
+impl TreeFlatten for AdamW {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        let ms = self.m.borrow();
+        let vs = self.v.borrow();
+        for i in 0..ms.len() {
+            flat.push(ms[i].clone());
+            flat.push(vs[i].clone());
+        }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        let mut ms = self.m.borrow_mut();
+        let mut vs = self.v.borrow_mut();
+        for i in 0..ms.len() {
+            ms[i] = flat_arrays.next().unwrap().clone();
+            vs[i] = flat_arrays.next().unwrap().clone();
+        }
+    }
+}
+
 impl Optimizer for AdamW {
     fn update(&mut self, params: Vec<&mut Array>, grads: Vec<Array>) -> Result<()> {
         let t = self.count.get() + 1;
@@ -221,6 +288,20 @@ impl AdaGrad {
     }
 }
 
+
+impl TreeFlatten for AdaGrad {
+    fn flatten_state(&self) -> Vec<Array> {
+        self.sum_sq_grad.borrow().clone()
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        let mut ss = self.sum_sq_grad.borrow_mut();
+        for arr in ss.iter_mut() {
+            *arr = flat_arrays.next().unwrap().clone();
+        }
+    }
+}
+
 impl Optimizer for AdaGrad {
     fn update(&mut self, params: Vec<&mut Array>, grads: Vec<Array>) -> Result<()> {
         let mut ss = self.sum_sq_grad.borrow_mut();
@@ -246,6 +327,20 @@ impl RMSprop {
     pub fn new(lr: f32, params: &[Array]) -> Result<Self> {
         let v = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
         Ok(Self { lr, alpha: 0.99, eps: 1e-8, v: std::cell::RefCell::new(v) })
+    }
+}
+
+
+impl TreeFlatten for RMSprop {
+    fn flatten_state(&self) -> Vec<Array> {
+        self.v.borrow().clone()
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        let mut vs = self.v.borrow_mut();
+        for arr in vs.iter_mut() {
+            *arr = flat_arrays.next().unwrap().clone();
+        }
     }
 }
 
@@ -275,6 +370,20 @@ impl Lion {
     pub fn new(lr: f32, params: &[Array]) -> Result<Self> {
         let m = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
         Ok(Self { lr, beta1: 0.9, beta2: 0.99, weight_decay: 0.0, exp_avg: std::cell::RefCell::new(m) })
+    }
+}
+
+
+impl TreeFlatten for Lion {
+    fn flatten_state(&self) -> Vec<Array> {
+        self.exp_avg.borrow().clone()
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        let mut ms = self.exp_avg.borrow_mut();
+        for arr in ms.iter_mut() {
+            *arr = flat_arrays.next().unwrap().clone();
+        }
     }
 }
 
@@ -314,6 +423,20 @@ impl Adafactor {
     pub fn new(lr: f32, params: &[Array]) -> Result<Self> {
         let v = params.iter().map(|p| Array::zeros_like(p)).collect::<Result<Vec<_>>>()?;
         Ok(Self { lr, eps1: 1e-30, eps2: 1e-3, v: std::cell::RefCell::new(v) })
+    }
+}
+
+
+impl TreeFlatten for Adafactor {
+    fn flatten_state(&self) -> Vec<Array> {
+        self.v.borrow().clone()
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        let mut vs = self.v.borrow_mut();
+        for arr in vs.iter_mut() {
+            *arr = flat_arrays.next().unwrap().clone();
+        }
     }
 }
 

@@ -4,7 +4,7 @@ use mlx_derive::ModuleParams;
 
 use crate::{Array, Result, Dtype};
 use crate::nn::{Module};
-
+use crate::TreeFlatten;
 #[derive(ModuleParams)]
 pub struct Embedding {
     pub weight: Array,
@@ -39,7 +39,16 @@ impl Embedding {
     }
 }
 
+impl TreeFlatten for Embedding {
+    fn flatten_state(&self) -> Vec<Array> {
+        // Only the learnable weights are tracked by the JIT
+        vec![self.weight.clone()]
+    }
 
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.weight = flat_arrays.next().unwrap().clone();
+    }
+}
 
 impl Module for Embedding {
     fn forward(&self, x: &Array) -> Result<Array> {

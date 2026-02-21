@@ -9,6 +9,7 @@
 use mlx::{Array, Dtype, Result, transforms, Device, DeviceType};
 use mlx::nn::{Module, ModuleParams, Optimizer, Sequential, Linear, ReLU, Conv2d, Flatten};
 use mlx::nn::{cross_entropy, Adam};
+use std::rc::Rc;
 //use mlx::nn::layers::normalization::LayerNorm;
 //use mlx::nn::layers::embedding::Embedding;
 use mlx::nn::transformers::TransformerEncoder;
@@ -84,8 +85,9 @@ fn bench_elementwise(key: &Array) -> Result<()> {
     Ok(())
 }
 
+
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. MLP Training Step
+// 3. MLP Training Step (JIT Compiled)
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn bench_mlp_training(key: &Array) -> Result<()> {
@@ -96,13 +98,14 @@ fn bench_mlp_training(key: &Array) -> Result<()> {
         (64, 512, 1024, 100),
         (128, 784, 2048, 10),
     ] {
-        let model = RefCell::new(Sequential::new(vec![
+        // Use Rc to share the model into the static JIT closure
+        let model = Rc::new(RefCell::new(Sequential::new(vec![
             Box::new(Linear::new(input, hidden, true, key)?),
             Box::new(ReLU::new()),
             Box::new(Linear::new(hidden, hidden, true, key)?),
             Box::new(ReLU::new()),
             Box::new(Linear::new(hidden, output, true, key)?),
-        ]));
+        ])));
 
         let mut optimizer = Adam::new(1e-3, &model.borrow().parameters_owned())?;
 
@@ -119,18 +122,40 @@ fn bench_mlp_training(key: &Array) -> Result<()> {
             batch, input, hidden, hidden, output
         );
 
+        // --- NEW: JIT Compile the Forward & Backward pass ---
+        let x_c = x.clone();
+        let targets_c = targets.clone();
+        let model_c = Rc::clone(&model);
+
+        // This compiles the entire computation graph into a single FFI boundary call!
+        let  compiled_grad_step = mlx::compile(move |p: &[Array]| -> Result<Vec<Array>> {
+        let (loss, grads) = transforms::value_and_grad(|inner_p: &[Array]| {
+            let logits = {
+                let mut m = model_c.borrow_mut();
+                m.update_parameters(inner_p);
+                m.forward(&x_c)? 
+            };
+            cross_entropy(&logits, &targets_c) 
+        }, p)?; 
+
+        let mut out = vec![loss];
+        out.extend(grads);
+        Ok(out)
+    }, false)?;
+
         bench(&label, 3, 100, || {
             let mut params = model.borrow().parameters_owned();
-            let (loss, grads) = transforms::value_and_grad(|p: &[Array]| {
-                let logits = {
-                    let mut m = model.borrow_mut();
-                    m.update_parameters(p);
-                    m.forward(&x)?
-                };
-                cross_entropy(&logits, &targets)
-            }, &params)?;
+
+            // 1. ONE FFI call executes the entire compiled graph!
+            let outputs = compiled_grad_step(&params)?;
+            let loss = outputs[0].clone();
+            let grads = outputs[1..].to_vec();
+
+            // 2. Optimizer step remains eager (which is fast enough on its own)
             optimizer.update(params.iter_mut().collect(), grads)?;
             model.borrow_mut().update_parameters(&params);
+
+            // 3. Force lazy evaluation
             let mut to_eval = params;
             to_eval.push(loss);
             Array::eval_all(&to_eval)?;
@@ -141,21 +166,22 @@ fn bench_mlp_training(key: &Array) -> Result<()> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 4. CNN Training Step
+// 4. CNN Training Step (JIT Compiled)
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn bench_cnn_training(key: &Array) -> Result<()> {
     println!("\n══ CNN TRAINING STEP (MNIST-like) ══");
 
     let batch = 32;
-    let model = RefCell::new(Sequential::new(vec![
+    // Use Rc to share the model into the static JIT closure
+    let model = Rc::new(RefCell::new(Sequential::new(vec![
         Box::new(Conv2d::new(1, 16, [3, 3], [2, 2], [1, 1], [1, 1], 1, true, key)?),
         Box::new(ReLU::new()),
         Box::new(Conv2d::new(16, 32, [3, 3], [2, 2], [1, 1], [1, 1], 1, true, key)?),
         Box::new(ReLU::new()),
         Box::new(Flatten::new()),
         Box::new(Linear::new(1568, 10, true, key)?),
-    ]));
+    ])));
 
     let mut optimizer = Adam::new(1e-3, &model.borrow().parameters_owned())?;
 
@@ -167,18 +193,53 @@ fn bench_cnn_training(key: &Array) -> Result<()> {
         .equal(&class_range.reshape(&[1, 10])?)?
         .cast(Dtype::Float32)?;
 
+    // --- NEW: JIT Compile the Forward & Backward pass ---
+    let x_c = x.clone();
+    let targets_c = targets.clone();
+    let model_c = Rc::clone(&model);
+    let  compiled_grad_step = mlx::compile(move |p: &[Array]| -> Result<Vec<Array>> {
+        let (loss, grads) = transforms::value_and_grad(|inner_p: &[Array]| {
+            let logits = {
+                let mut m = model_c.borrow_mut();
+                m.update_parameters(inner_p);
+                m.forward(&x_c)? // Use ? instead of .unwrap()
+            };
+            Ok(cross_entropy(&logits, &targets_c).unwrap()) // Removed .unwrap() to return the Result directly
+        }, p)?; // Use ? here as well
+
+        let mut out = vec![loss];
+        out.extend(grads);
+        Ok(out)
+    }, false)?;
+
+    // let mut compiled_grad_step = mlx::compile(move |p: &[Array]| -> Result<Vec<Array>> {
+    //     let (loss, grads) = transforms::value_and_grad(|inner_p: &[Array]| {
+    //         let logits = {
+    //             let mut m = model_c.borrow_mut();
+    //             m.update_parameters(inner_p);
+    //             m.forward(&x_c).unwrap()
+    //         };
+    //         cross_entropy(&logits, &targets_c).unwrap()
+    //     }, p).unwrap();
+
+    //     let mut out = vec![loss];
+    //     out.extend(grads);
+    //     Ok(out)
+    // }, false)?;
+
     bench("CNN fwd+bwd+update B=32 [28x28x1 -> 10]", 3, 100, || {
         let mut params = model.borrow().parameters_owned();
-        let (loss, grads) = transforms::value_and_grad(|p: &[Array]| {
-            let logits = {
-                let mut m = model.borrow_mut();
-                m.update_parameters(p);
-                m.forward(&x)?
-            };
-            cross_entropy(&logits, &targets)
-        }, &params)?;
+        
+        // 1. ONE FFI call executes the entire compiled graph!
+        let outputs = compiled_grad_step(&params)?;
+        let loss = outputs[0].clone();
+        let grads = outputs[1..].to_vec();
+
+        // 2. Optimizer update
         optimizer.update(params.iter_mut().collect(), grads)?;
         model.borrow_mut().update_parameters(&params);
+
+        // 3. Force lazy evaluation
         let mut to_eval = params;
         to_eval.push(loss);
         Array::eval_all(&to_eval)?;
@@ -187,6 +248,110 @@ fn bench_cnn_training(key: &Array) -> Result<()> {
 
     Ok(())
 }
+
+// // ═══════════════════════════════════════════════════════════════════════════
+// // 3. MLP Training Step
+// // ═══════════════════════════════════════════════════════════════════════════
+
+// fn bench_mlp_training(key: &Array) -> Result<()> {
+//     println!("\n══ MLP TRAINING STEP ══");
+
+//     for &(batch, input, hidden, output) in &[
+//         (32_usize, 128_usize, 256_usize, 10_usize),
+//         (64, 512, 1024, 100),
+//         (128, 784, 2048, 10),
+//     ] {
+//         let model = RefCell::new(Sequential::new(vec![
+//             Box::new(Linear::new(input, hidden, true, key)?),
+//             Box::new(ReLU::new()),
+//             Box::new(Linear::new(hidden, hidden, true, key)?),
+//             Box::new(ReLU::new()),
+//             Box::new(Linear::new(hidden, output, true, key)?),
+//         ]));
+
+//         let mut optimizer = Adam::new(1e-3, &model.borrow().parameters_owned())?;
+
+//         let x = Array::random_uniform(&[batch, input], -1.0, 1.0, Dtype::Float32, key)?;
+//         let class_range = Array::arange(0.0, output as f64, 1.0, Dtype::Float32)?;
+//         let raw_labels = Array::random_uniform(&[batch], 0.0, output as f32, Dtype::Float32, key)?
+//             .cast(Dtype::Int32)?;
+//         let targets = raw_labels.reshape(&[batch as i32, 1])?
+//             .equal(&class_range.reshape(&[1, output as i32])?)?
+//             .cast(Dtype::Float32)?;
+
+//         let label = format!(
+//             "MLP fwd+bwd+update B={} [{}->{}->{}->{}]",
+//             batch, input, hidden, hidden, output
+//         );
+
+//         bench(&label, 3, 100, || {
+//             let mut params = model.borrow().parameters_owned();
+//             let (loss, grads) = transforms::value_and_grad(|p: &[Array]| {
+//                 let logits = {
+//                     let mut m = model.borrow_mut();
+//                     m.update_parameters(p);
+//                     m.forward(&x)?
+//                 };
+//                 cross_entropy(&logits, &targets)
+//             }, &params)?;
+//             optimizer.update(params.iter_mut().collect(), grads)?;
+//             model.borrow_mut().update_parameters(&params);
+//             let mut to_eval = params;
+//             to_eval.push(loss);
+//             Array::eval_all(&to_eval)?;
+//             Ok(())
+//         });
+//     }
+//     Ok(())
+// }
+
+// // ═══════════════════════════════════════════════════════════════════════════
+// // 4. CNN Training Step
+// // ═══════════════════════════════════════════════════════════════════════════
+
+// fn bench_cnn_training(key: &Array) -> Result<()> {
+//     println!("\n══ CNN TRAINING STEP (MNIST-like) ══");
+
+//     let batch = 32;
+//     let model = RefCell::new(Sequential::new(vec![
+//         Box::new(Conv2d::new(1, 16, [3, 3], [2, 2], [1, 1], [1, 1], 1, true, key)?),
+//         Box::new(ReLU::new()),
+//         Box::new(Conv2d::new(16, 32, [3, 3], [2, 2], [1, 1], [1, 1], 1, true, key)?),
+//         Box::new(ReLU::new()),
+//         Box::new(Flatten::new()),
+//         Box::new(Linear::new(1568, 10, true, key)?),
+//     ]));
+
+//     let mut optimizer = Adam::new(1e-3, &model.borrow().parameters_owned())?;
+
+//     let x = Array::random_uniform(&[batch, 28, 28, 1], -1.0, 1.0, Dtype::Float32, key)?;
+//     let class_range = Array::arange(0.0, 10.0, 1.0, Dtype::Float32)?;
+//     let raw_labels = Array::random_uniform(&[batch], 0.0, 10.0, Dtype::Float32, key)?
+//         .cast(Dtype::Int32)?;
+//     let targets = raw_labels.reshape(&[batch as i32, 1])?
+//         .equal(&class_range.reshape(&[1, 10])?)?
+//         .cast(Dtype::Float32)?;
+
+//     bench("CNN fwd+bwd+update B=32 [28x28x1 -> 10]", 3, 100, || {
+//         let mut params = model.borrow().parameters_owned();
+//         let (loss, grads) = transforms::value_and_grad(|p: &[Array]| {
+//             let logits = {
+//                 let mut m = model.borrow_mut();
+//                 m.update_parameters(p);
+//                 m.forward(&x)?
+//             };
+//             cross_entropy(&logits, &targets)
+//         }, &params)?;
+//         optimizer.update(params.iter_mut().collect(), grads)?;
+//         model.borrow_mut().update_parameters(&params);
+//         let mut to_eval = params;
+//         to_eval.push(loss);
+//         Array::eval_all(&to_eval)?;
+//         Ok(())
+//     });
+
+//     Ok(())
+// }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 5. Transformer Forward Pass

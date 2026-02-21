@@ -1,7 +1,7 @@
 
 /// Module trait and related utilities for building neural network layers and models.
 
-use crate::{Array, Result};
+use crate::{Array, Result, TreeFlatten};
 
 
 pub trait ModuleParams {
@@ -15,7 +15,7 @@ pub trait ModuleParams {
     }
 }
 
-pub trait Module: ModuleParams {
+pub trait Module: ModuleParams + TreeFlatten{
     fn forward(&self, x: &Array) -> Result<Array>;
 }
 
@@ -31,7 +31,15 @@ impl Module for Box<dyn Module> {
     fn forward(&self, x: &Array) -> Result<Array> { (**self).forward(x) }
 }
 
+impl TreeFlatten for Box<dyn Module> {
+    fn flatten_state(&self) -> Vec<Array> {
+        (**self).flatten_state()
+    }
 
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        (**self).unflatten_state(flat_arrays)
+    }
+}
 
 // pub trait ModuleParams {
 //     // This trait is a marker for structs that have parameters. It can be used for code generation or reflection.

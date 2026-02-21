@@ -2,6 +2,8 @@ use crate::{Array, Result, Dtype};
 use crate::nn::Module;
 use crate::nn::layers::activations::{sigmoid, tanh};
 use mlx_derive::ModuleParams;
+use crate::TreeFlatten;
+
 
 // --- Helper for Weight Initialization ---
 // Uniform initialization bounded by 1 / sqrt(hidden_size)
@@ -78,6 +80,25 @@ impl LSTM {
         let h_next = o_gate.multiply(&tanh(&c_next)?)?;
 
         Ok((h_next, c_next))
+    }
+}
+impl TreeFlatten for LSTM {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = vec![self.weight_ih.clone(), self.weight_hh.clone()];
+        if let Some(b) = &self.bias_ih { flat.push(b.clone()); }
+        if let Some(b) = &self.bias_hh { flat.push(b.clone()); }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.weight_ih = flat_arrays.next().unwrap().clone();
+        self.weight_hh = flat_arrays.next().unwrap().clone();
+        if self.bias_ih.is_some() {
+            self.bias_ih = Some(flat_arrays.next().unwrap().clone());
+        }
+        if self.bias_hh.is_some() {
+            self.bias_hh = Some(flat_arrays.next().unwrap().clone());
+        }
     }
 }
 
@@ -171,6 +192,26 @@ impl GRU {
     }
 }
 
+impl TreeFlatten for GRU{
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = vec![self.weight_ih.clone(), self.weight_hh.clone()];
+        if let Some(b) = &self.bias_ih { flat.push(b.clone()); }
+        if let Some(b) = &self.bias_hh { flat.push(b.clone()); }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.weight_ih = flat_arrays.next().unwrap().clone();
+        self.weight_hh = flat_arrays.next().unwrap().clone();
+        if self.bias_ih.is_some() {
+            self.bias_ih = Some(flat_arrays.next().unwrap().clone());
+        }
+        if self.bias_hh.is_some() {
+            self.bias_hh = Some(flat_arrays.next().unwrap().clone());
+        }
+    }
+}
+
 impl Module for GRU {
     fn forward(&self, x: &Array) -> Result<Array> {
         let batch_size = x.shape()?[0] as i32;
@@ -233,6 +274,25 @@ impl RNN {
         if let Some(ref b) = self.bias_hh { h_proj = h_proj.add(b)?; }
 
         tanh(&x_proj.add(&h_proj)?)
+    }
+}
+impl TreeFlatten for RNN {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = vec![self.weight_ih.clone(), self.weight_hh.clone()];
+        if let Some(b) = &self.bias_ih { flat.push(b.clone()); }
+        if let Some(b) = &self.bias_hh { flat.push(b.clone()); }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        self.weight_ih = flat_arrays.next().unwrap().clone();
+        self.weight_hh = flat_arrays.next().unwrap().clone();
+        if self.bias_ih.is_some() {
+            self.bias_ih = Some(flat_arrays.next().unwrap().clone());
+        }
+        if self.bias_hh.is_some() {
+            self.bias_hh = Some(flat_arrays.next().unwrap().clone());
+        }
     }
 }
 

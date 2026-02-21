@@ -2,8 +2,26 @@
 
 use crate::{Array,Result};
 use crate::nn::{Module,ModuleParams};
+use crate::TreeFlatten;
 
 /// A container that wraps a sequence of modules and applies them one after another.
+
+impl TreeFlatten for Sequential {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        for layer in &self.layers {
+            // Assuming your layers implement TreeFlatten
+            flat.extend(layer.flatten_state());
+        }
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        for layer in &mut self.layers {
+            layer.unflatten_state(flat_arrays);
+        }
+    }
+}
 pub struct Sequential {
     pub layers: Vec<Box<dyn Module>>,
 }

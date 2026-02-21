@@ -2,9 +2,8 @@ use crate::{Array, Result};
 use crate::nn::{Module};
 use crate::nn::layers::linear::Linear;
 use crate::nn::transformers::scaled_dot_product::scaled_dot_product_attention;
+use crate::tree::TreeFlatten; // <-- 1. Import TreeFlatten
 use mlx_derive::ModuleParams;
-
-
 
 #[derive(ModuleParams)]
 pub struct MultiHeadAttention{
@@ -20,8 +19,6 @@ pub struct MultiHeadAttention{
     pub v_proj: Linear,
     #[module]
     pub out_proj: Linear,
-
-
 }
 
 impl MultiHeadAttention {
@@ -72,14 +69,27 @@ impl MultiHeadAttention {
 }
 
 
+impl TreeFlatten for MultiHeadAttention {
+    fn flatten_state(&self) -> Vec<Array> {
+        let mut flat = Vec::new();
+        flat.extend(self.q_proj.flatten_state());
+        flat.extend(self.k_proj.flatten_state());
+        flat.extend(self.v_proj.flatten_state());
+        flat.extend(self.out_proj.flatten_state());
+        flat
+    }
+
+    fn unflatten_state(&mut self, flat_arrays: &mut std::slice::Iter<'_, Array>) {
+        // Must unflatten in the exact same order!
+        self.q_proj.unflatten_state(flat_arrays);
+        self.k_proj.unflatten_state(flat_arrays);
+        self.v_proj.unflatten_state(flat_arrays);
+        self.out_proj.unflatten_state(flat_arrays);
+    }
+}
+
 impl Module for MultiHeadAttention{
     fn forward(&self, x: &Array) -> Result<Array>{
         self.forward_qkv(x, x, x, None)
     }
-
 }
-
-
-
-
-        
