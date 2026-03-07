@@ -124,8 +124,6 @@ We compared the performance of **mlx-rs**, **MLX Python**, and **PyTorch MPS** a
 * **mlx-rs suffers from FFI overhead in training loops:** The Rust→C FFI boundary adds per-operation latency that becomes highly visible on smaller models. However, on pure compute workloads (like large matrix multiplications and element-wise operations), all three frameworks are within **~5%** of each other since the heavy lifting is done by the exact same Metal kernels.
 * **PyTorch MPS has the best large matmul kernels:** PyTorch scales slightly better on massive matrices (roughly **6% faster** at 4096²). However, it falls behind on small-batch training, where its eager execution model adds significant overhead compared to MLX's lazy evaluation.
 
-### Future Optimizations
-
 The primary optimization opportunity for `mlx-rs` is reducing the number of FFI calls per training step. We are actively exploring exposing a fused `value_and_grad` + optimizer step directly at the C level to eliminate the Rust→C roundtrips during tight training loops.
 
 ## ANE Offload — `--features ane_offload`
