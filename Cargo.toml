@@ -1,5 +1,5 @@
 [workspace]
-members = ["mlx-sys", "mlx", "mlx-derive"]
+members = ["mlx-sys", "mlx", "mlx-derive", "ane-bridge"]
 resolver = "2"
 
 [workspace.package]

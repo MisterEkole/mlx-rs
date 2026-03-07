@@ -9,7 +9,7 @@ use mlx_derive::ModuleParams;
 use crate::TreeFlatten;
 
 /// A linear (fully connected) layer.
-/// 
+///
 /// Applies a linear transformation to the incoming data: y = xA^T + b
 
 
@@ -39,6 +39,11 @@ pub struct Linear {
     pub bias: Option<Array>,
     pub in_features: usize,
     pub out_features: usize,
+
+    // ane_offload: stable unique ID per layer instance used as the cache key.
+    // Not annotated with #[param] so the derive macro ignores it completely.
+    #[cfg(feature = "ane_offload")]
+    pub(crate) layer_id: u64,
 }
 
 impl Linear {
@@ -83,9 +88,11 @@ impl Linear {
             bias: bias_array,
             in_features,
             out_features,
+            #[cfg(feature = "ane_offload")]
+            layer_id: crate::ane::next_layer_id(),
         })
     }
-    
+
     /// Creates a Linear layer from existing weights.
     pub fn from_weights(weight: Array, bias: Option<Array>) -> Result<Self> {
         let shape = weight.shape()?;
@@ -94,32 +101,44 @@ impl Linear {
                 format!("Weight must be 2D, got shape {:?}", shape)
             ));
         }
-        
+
         Ok(Self {
             out_features: shape[0],
             in_features: shape[1],
             weight,
             bias,
+            #[cfg(feature = "ane_offload")]
+            layer_id: crate::ane::next_layer_id(),
         })
     }
 }
 
 impl Module for Linear {
     /// Computes y = x @ W^T + b
+    ///
+    /// When the `ane_offload` feature is active, this attempts to route the
+    /// forward pass through Apple's Neural Engine via the ANE bridge.
+    /// Falls back to the MLX GPU path silently on any failure (ANE unavailable,
+    /// compile budget exhausted, execution error, non-2D input, etc.).
     fn forward(&self, x: &Array) -> Result<Array> {
-        // In MLX, we typically store weights as [Out, In]
-        // To compute the dot product, we transpose the weights to [In, Out]
-        // result: [Batch, In] @ [In, Out] -> [Batch, Out]
-        let weight_t= self.weight.transpose(&[])?;
-        //println!("X shape: {:?}, Weight shape (T): {:?}", x.shape()?, self.weight.transpose(&[1, 0])?.shape()?);
-        let mut out = x.matmul(&weight_t)?;
-        
+        // ── ANE offload path (compiled in only with --features ane_offload) ──
+        #[cfg(feature = "ane_offload")]
+        match crate::ane::try_linear_forward(self, x) {
+            Ok(Some(result)) => return Ok(result),
+            Ok(None)         => { /* fall through to MLX path below */ }
+            Err(_)           => { /* fall through to MLX path below */ }
+        }
+
+        // ── MLX GPU path (always present, always the fallback) ───────────────
+        // Weights stored as [out, in]; transpose to [in, out] for matmul.
+        // result: [batch, in] @ [in, out] → [batch, out]
+        let weight_t = self.weight.transpose(&[])?;
+        let mut out  = x.matmul(&weight_t)?;
+
         if let Some(ref b) = self.bias {
             out = out.add(b)?;
         }
-        
+
         Ok(out)
     }
- 
-    
 }

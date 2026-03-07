@@ -6,13 +6,16 @@ use std::fmt;
 pub mod array;
 pub mod dtype;
 pub mod device;
-pub mod operations; 
+pub mod operations;
 pub mod nn;
 pub mod transforms;
 pub mod quantization;
 pub mod io;
 pub mod distributed;
 pub mod tree;
+
+#[cfg(feature = "ane_offload")]
+pub mod ane;
 
 // 2. Re-export items so users can just type `mlx::Array` instead of `mlx::array::Array`
 pub use array::Array;

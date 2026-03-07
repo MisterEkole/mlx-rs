@@ -128,6 +128,51 @@ We compared the performance of **mlx-rs**, **MLX Python**, and **PyTorch MPS** a
 
 The primary optimization opportunity for `mlx-rs` is reducing the number of FFI calls per training step. We are actively exploring exposing a fused `value_and_grad` + optimizer step directly at the C level to eliminate the Rust→C roundtrips during tight training loops.
 
+## ANE Offload — `--features ane_offload`
+
+mlx-rs includes an optional feature that routes `Linear::forward` through Apple's Neural Engine (ANE) via private APIs, bypassing Core ML's scheduler. Everything else — autograd, optimizer, loss — stays on MLX. The ANE path falls back silently to MLX GPU on any failure.
+
+```rust
+// No API changes. The feature flag does the routing.
+let linear = Linear::new(512, 1024, true, &key)?;
+let out = linear.forward(&x)?;  // → ANE if available, MLX GPU otherwise
+```
+
+**GPT-2 inference benchmark** (4-layer transformer, 384 dims, batch×seq=32 tokens):
+
+```
+Warmup (25 ANE compiles):   1002 ms   ← one-time cost
+Cached forward (50 runs):     14.9 ms mean,  13.2 ms min
+
+Layer-level ANE vs GPU:
+  q_proj  [384→ 384]   ANE: 187 µs   GPU: 282 µs   1.51× faster
+  fc1     [384→1536]   ANE: 446 µs   GPU: 372 µs   1.20× slower  ← CPU round-trip overhead
+  fc2     [1536→ 384]  ANE: 450 µs   GPU: 370 µs   1.22× slower
+  lm_head [384→1000]   ANE: 402 µs   GPU: 315 µs   CoreML fallback (slot 25/24 cap)
+
+Throughput:
+  batch=1   14.4 ms   2,220 tok/s
+  batch=2   18.6 ms   3,449 tok/s
+  batch=4   21.7 ms   5,911 tok/s
+```
+
+The attention projection is faster on ANE. The FFN layers are currently slower due to a CPU round-trip between the MLX Metal buffer and the ANE IOSurface — a known gap documented in [WHATSNEW.md](WHATSNEW.md). Eliminating it requires one Metal shader that has not been implemented yet.
+
+```bash
+# Run the GPT-2 inference benchmark
+cargo run --example gpt2_ane_bench --features ane_offload --release
+
+# Run the per-layer ANE vs GPU benchmark
+cargo run --example ane_bench --features ane_offload --release
+
+# See per-call ANE dispatch logs
+RUST_LOG=debug cargo run --example gpt2_ane_bench --features ane_offload --release
+```
+
+> Uses Apple's private `AppleNeuralEngine.framework`, reverse-engineered by [maderix](https://github.com/maderix/ANE). Subject to breakage on macOS updates. Fallback to MLX GPU is always active.
+
+Full details — cache design, compile budget, daemon slot limit, what's next — in [WHATSNEW.md](WHATSNEW.md).
+
 ## Development Status
 
 **⚠️ Early Development**: This project is in early development. APIs may change. Advanced features are being added regularly.

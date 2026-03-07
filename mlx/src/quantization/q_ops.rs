@@ -24,6 +24,48 @@ extern "C" {
     ) -> std::os::raw::c_int;
 }
 
+// pub fn quantize(array: &Array, bits: i32, group_size: i32) -> Result<(Array, Array, Array)> {
+//     unsafe {
+//         let mut res_vec = sys::mlx_vector_array { ctx: std::ptr::null_mut() };
+//         let mode = std::ffi::CString::new("affine").unwrap();
+        
+//         let opt_group_size = sys::mlx_optional_int {
+//            value: group_size as std::ffi::c_int,
+//            has_value: true,
+//         };
+        
+//         let opt_bits = sys::mlx_optional_int {
+//            value: bits as std::ffi::c_int,
+//            has_value: true,
+//         };
+        
+//         // Removed global_scale to match your local 6-argument signature
+//         let status = sys::mlx_quantize(
+//             &mut res_vec,
+//             array.handle,
+//             opt_group_size,
+//             opt_bits,
+//             mode.as_ptr(),
+//             Array::default_stream(),
+//         );
+
+//         if status != 0 || res_vec.ctx.is_null() {
+//             return Err(Error::OperationFailed("mlx_quantize failed".into()));
+//         }
+
+//         let mut q_h = sys::mlx_array { ctx: std::ptr::null_mut() };
+//         let mut s_h = sys::mlx_array { ctx: std::ptr::null_mut() };
+//         let mut b_h = sys::mlx_array { ctx: std::ptr::null_mut() };
+
+//         sys::mlx_vector_array_get(&mut q_h, res_vec, 0);
+//         sys::mlx_vector_array_get(&mut s_h, res_vec, 1);
+//         sys::mlx_vector_array_get(&mut b_h, res_vec, 2);
+
+//         sys::mlx_vector_array_free(res_vec);
+//         Ok((Array { handle: q_h }, Array { handle: s_h }, Array { handle: b_h }))
+//     }
+// }
+
 pub fn quantize(array: &Array, bits: i32, group_size: i32) -> Result<(Array, Array, Array)> {
     unsafe {
         let mut res_vec = sys::mlx_vector_array { ctx: ptr::null_mut() };
