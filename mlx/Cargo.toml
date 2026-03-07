@@ -5,12 +5,34 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[features]
+# Route Linear::forward through Apple's ANE for forward passes.
+# Falls back to MLX GPU silently when the ANE is unavailable or the
+# per-process compile budget (~119) is exhausted.
+# Only meaningful on macOS with Apple Silicon.
+ane_offload = ["dep:ane-bridge"]
+
 [dependencies]
 mlx-sys = { path = "../mlx-sys" }
 mlx-derive = {path = "../mlx-derive"}
 zip="0.6"
 tokenizers = "0.19"
+log = "0.4"
+# Optional: compiled in only when ane_offload feature is active.
+# build.rs in ane-bridge returns early on non-macOS, so this is safe cross-platform.
+ane-bridge = { path = "../ane-bridge", optional = true }
 
+[dev-dependencies]
+env_logger = "0.11"
+
+
+[[example]]
+name = "ane_bench"
+required-features = ["ane_offload"]
+
+[[example]]
+name = "gpt2_ane_bench"
+required-features = ["ane_offload"]
 
 [[example]]
 name = "basic_ops"

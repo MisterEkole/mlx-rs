@@ -1,0 +1,8 @@
+[package]
+name = "ane-bridge"
+version = "0.1.0"
+edition = "2021"
+description = "Thin Obj-C bridge into Apple's private AppleNeuralEngine.framework"
+
+[build-dependencies]
+cc = "1.0"
